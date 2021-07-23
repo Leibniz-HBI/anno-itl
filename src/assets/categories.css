@@ -1,0 +1,32 @@
+.category-pane {
+  float: left;
+  width: 33%;
+  height: 89vh;
+  border-right: 5px solid rgb(32, 87, 158);
+}
+
+.category-box{
+  border-bottom: 5px solid rgb(32, 87, 158);
+  height: 55%;
+  overflow-y: hidden;
+}
+
+.category-container {
+  font-size: large;
+  height: 10%;
+  padding-left: 2px;
+  overflow: hidden;
+  padding: 8px 16px;
+  border-bottom: 1px solid #ddd;
+  border-left: 1px solid #ddd
+}
+
+.category-remove-btn {
+  float: right;
+}
+
+
+
+.algo-box{
+  font-size: medium;
+}

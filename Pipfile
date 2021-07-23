@@ -9,8 +9,13 @@ verify_ssl = true
 pandas = "*"
 pyreadr = "*"
 numpy = "*"
-flair = "*"
 scrapy = "*"
+sentence-transformers = "*"
+flake8 = "*"
+matplotlib = "*"
+spacy = "*"
+spacytextblob = "*"
+dash = "*"
 
 [requires]
 python_version = "3.9"

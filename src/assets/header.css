@@ -1,0 +1,10 @@
+.app-header {
+    height: 10vh;
+    line-height: 60px;
+    border-bottom: thin lightgray solid;
+}
+
+.app-header .app-header--title {
+    font-size: 22px;
+    padding-left: 5px;
+}
