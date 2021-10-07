@@ -2,6 +2,8 @@
 giving suggestions for similar text units.
 """
 
+import re
+import pandas as pd
 import dash
 import dash_table
 import dash_core_components as dcc
@@ -10,8 +12,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash_html_components.Button import Button
 import datasets
 import html_generators
-import re
-import pandas as pd
+import table_sync
+import files
 
 app = dash.Dash(__name__)
 
@@ -28,7 +30,24 @@ app.layout = html.Div([
     html.Div(
         className="app-header",
         children=[
-            html.Div('Plotly Dash', className="app-header--title")
+            html.Div('Annotation tool with Human in the Loop', className="app-header--title"),
+            dcc.Upload(
+                id='upload-data',
+                children=html.Div([
+                    'Drag and Drop or ',
+                    html.A('Select a CSV, CTV or XLS File')
+                ]),
+                style={
+                    'width': '30%',
+                    'height': '60px',
+                    'lineHeight': '60px',
+                    'borderWidth': '1px',
+                    'borderStyle': 'dashed',
+                    'borderRadius': '5px',
+                    'textAlign': 'center',
+                    'margin': '10px'
+                },
+            )
         ]
     ),
     html.Div(
@@ -40,12 +59,8 @@ app.layout = html.Div([
                     id='arg-table',
                     filter_action="native",
                     columns=[
-                        {'name': 'id', 'id': 'id', 'hidden': True},
                         {'name': 'Argument', 'id': 'sentence'},
                         {'name': 'Category', 'id': 'category',  'editable':True, 'presentation': 'dropdown'}
-                    ],
-                    hidden_columns=[
-
                     ],
                     dropdown= {
                         'category': {
@@ -207,9 +222,11 @@ def add_category(n_clicks, n_submit, remove_click, cat_input, children, arg_drop
         Input('arg-table', 'dropdown'),
         Input('arg-table', 'data'),
         Input('algo-table', 'data'),
-    State('argument-detail-box', 'children')
+        Input('upload-data', 'contents'),
+    State('argument-detail-box', 'children'),
+    State('upload-data', 'filename')
 )
-def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, details_children):
+def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, ul_table, details_children, ul_filename):
     """handle changes to input table.
     There are two scenarios how the argument details or the data for the algo
     table can change.
@@ -227,33 +244,17 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, detail
     trigger = dash.callback_context.triggered[0]['prop_id']
     # first case.
     if trigger == 'arg-table.active_cell':
-        dff = pd.DataFrame(arg_data)
-        sentence_data = sentences_df.iloc[active_cell['row']]
-        sentence = sentence_data['sentence']
-        details_table = html_generators.create_details_table(sentence_data, header='argument details')
-        similarity_indices = datasets.search_faiss_with_string(
-            sentence,
-            search_index,
-            SIMILARITY_SEARCH_RESULTS
-        )
-        similarity_table_data = dff.iloc[similarity_indices]
-
-        return details_table, arg_data, similarity_table_data.to_dict('records')
+        details_table, algo_table_data = table_sync.active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RESULTS)
+        return details_table, arg_data, algo_table_data
     # second case.
     elif trigger == 'arg-table.dropdown':
-        # this means that the dropdown changed, second case!
-        labels = [cat['label'] for cat in dropdown['category']['options']]
-        for index, row in enumerate(arg_data):
-            if row['category'] not in labels:
-                arg_data[index]['category'] = None
-        for index, row in enumerate(algo_data):
-            if row['category'] not in labels:
-                algo_data[index]['category'] = None
-        return details_children, arg_data, algo_data
+        new_arg_data, new_algo_data =  table_sync.sync_categories(dropdown, arg_data, algo_data)
+        return details_children, new_arg_data, new_algo_data
     # third case, arg-table data has changed.
-    elif trigger == 'arg-table.data':
-        print (dash.callback_context.triggered)
-    elif trigger == 'algo-table.data':
-        print (dash.callback_context.triggered)
+    elif trigger in ['arg-table.data', 'algo-table.data']:
+        new_arg_data, new_algo_data = table_sync.sync_dropdown_selection(arg_data, algo_data, trigger)
+        return details_children, new_arg_data, new_algo_data
+
+
 if __name__ == '__main__':
     app.run_server(debug=True)

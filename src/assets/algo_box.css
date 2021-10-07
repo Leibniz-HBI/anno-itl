@@ -1,0 +1,5 @@
+#algo-box {
+    height: 45%;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
