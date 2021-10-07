@@ -29,7 +29,7 @@ def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RE
         similarity table
     """
     dff = pd.DataFrame(arg_data)
-    sentence_data = dff.iloc[active_cell['row']]
+    sentence_data = dff.iloc[active_cell['row_id']]
     sentence = sentence_data['sentence']
     details_table = html_generators.create_details_table(sentence_data, header='argument details')
     similarity_indices = datasets.search_faiss_with_string(
@@ -65,17 +65,20 @@ def sync_categories(dropdown, arg_data, algo_data):
     return arg_data, algo_data
 
 
-def sync_dropdown_selection(arg_data, algo_data, trigger):
+def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell):
     """Syncs the selection of categories in both tables
 
     Based on the trigger, the values from the arg table are put into the algo
     table or vice versa. For the first case, a new slice of the arg table is
     created, for the second case, the values from the algo table are updated
     into the arg table.
+    The details table is also refreshed, so that category changes are reflected
+    immediately.
     Args:
         arg_data : data from arg-table
         algo_data: data from algo_data
         trigger: the trigger value
+        active_cell: the active cell object.
 
     Returns:
         The updated table data.
@@ -95,4 +98,6 @@ def sync_dropdown_selection(arg_data, algo_data, trigger):
         arg_df.replace({'removed': None}, regex=True, inplace=True)
         arg_df = arg_df.reset_index()
         algo_df = algo_df.reset_index()
-    return arg_df.to_dict('records'), algo_df.to_dict('records')
+    sentence_data = arg_df.iloc[active_cell['row_id']]
+    details_table = html_generators.create_details_table(sentence_data, header='argument details')
+    return details_table, arg_df.to_dict('records'), algo_df.to_dict('records')

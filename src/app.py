@@ -238,6 +238,7 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, ul_tab
     of all the items that have this category selected.
     Third, a dropdown item is changed in either datatable (algo or arg). If
     that's the case, the change must be reflected in the other table as well.
+    In this case, the details table should also be refreshed
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
@@ -252,8 +253,8 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, ul_tab
         return details_children, new_arg_data, new_algo_data
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
-        new_arg_data, new_algo_data = table_sync.sync_dropdown_selection(arg_data, algo_data, trigger)
-        return details_children, new_arg_data, new_algo_data
+        return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+
 
 
 if __name__ == '__main__':
