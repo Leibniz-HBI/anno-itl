@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+ipykernel = "*"
 
 [packages]
 pandas = "*"
@@ -16,6 +17,9 @@ matplotlib = "*"
 spacy = "*"
 spacytextblob = "*"
 dash = "*"
+faiss-cpu = "*"
+faiss-gpu = "*"
+beautifulsoup4 = "*"
 
 [requires]
 python_version = "3.9"

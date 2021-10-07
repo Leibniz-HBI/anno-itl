@@ -1,6 +1,6 @@
 .arg-list-pane {
   float: left;
-  width: 33%;
+  width: 40%;
   height: 89vh;
   border-right: 5px solid rgb(32, 87, 158);
   border-left: 5px solid rgb(32, 87, 158);
@@ -9,7 +9,8 @@
 .arg-list-box {
   border-bottom: 5px solid rgb(32, 87, 158);
   height: 55%;
-
+  overflow-x: hidden;
+  overflow-y: scroll;
 
 }
 .arg-container {
@@ -23,10 +24,8 @@
 
 ul > *:hover {
   background-color: rgb(238, 238, 238);
-  cursor: pointer;
+  /* cursor: pointer; */
 }
-
-
 
 ul {
   list-style-type: none;
