@@ -21,6 +21,7 @@ faiss-cpu = "*"
 faiss-gpu = "*"
 beautifulsoup4 = "*"
 nltk = ">=3.6.4"
+dash-bootstrap-components = "*"
 
 [requires]
 python_version = "3.9"
