@@ -1,7 +1,7 @@
 import base64
 import io
 
-import dash_html_components as html
+from dash import html
 
 import pandas as pd
 

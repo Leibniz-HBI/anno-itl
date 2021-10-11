@@ -1,10 +1,9 @@
 """Here are all the generated html pieces that are needed.
 """
 
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash_html_components.Tr import Tr
+from dash import dcc
+import dash.html as html
+from dash.html.Tr import Tr
 from dash.dependencies import Input, Output, State, MATCH, ALL
 import plotly.express as px
 

@@ -5,11 +5,11 @@ giving suggestions for similar text units.
 import re
 import pandas as pd
 import dash
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dash_table
+from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State, MATCH, ALL
-from dash_html_components.Button import Button
+from dash.html.Button import Button
 import datasets
 import html_generators
 import table_sync
