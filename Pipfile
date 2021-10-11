@@ -20,6 +20,7 @@ dash = "*"
 faiss-cpu = "*"
 faiss-gpu = "*"
 beautifulsoup4 = "*"
+nltk = ">=3.6.4"
 
 [requires]
 python_version = "3.9"
