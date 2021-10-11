@@ -10,12 +10,16 @@ from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.html.Button import Button
+import dash_bootstrap_components as dbc
 import datasets
 import html_generators
 import table_sync
-import files
 
-app = dash.Dash(__name__)
+app = dash.Dash(external_stylesheets=[dbc.themes.JOURNAL],
+                suppress_callback_exceptions = True
+                )
+
+dcc.Store(id='uploaded-data')
 
 SIMILARITY_SEARCH_RESULTS = 10
 
@@ -28,26 +32,11 @@ categories = [cat for cat in sentences_df['category'].unique() if cat]
 
 app.layout = html.Div([
     html.Div(
-        className="app-header",
+        className='app-header',
+        id = 'app-header',
         children=[
             html.Div('Annotation tool with Human in the Loop', className="app-header--title"),
-            dcc.Upload(
-                id='upload-data',
-                children=html.Div([
-                    'Drag and Drop or ',
-                    html.A('Select a CSV, CTV or XLS File')
-                ]),
-                style={
-                    'width': '30%',
-                    'height': '60px',
-                    'lineHeight': '60px',
-                    'borderWidth': '1px',
-                    'borderStyle': 'dashed',
-                    'borderRadius': '5px',
-                    'textAlign': 'center',
-                    'margin': '10px'
-                },
-            )
+            dbc.Button("Open or create project", color='primary', id='btn-new-data'),
         ]
     ),
     html.Div(
@@ -99,8 +88,8 @@ app.layout = html.Div([
                 html.Div(
                     className="category-header",
                     children=[
-                        dcc.Input(id='cat-input', value='Add Category..', type='text'),
-                        html.Button(id='submit-cat-button', n_clicks=0, children='Add')
+                        dbc.Input(id='cat-input', placeholder='Add Category..', type='text'),
+                        dbc.Button(id='submit-cat-button', color='primary', n_clicks=0, children='Add')
                     ]),
                 html.Ul(
                     id='cat_list',
@@ -141,7 +130,6 @@ app.layout = html.Div([
                         'maxWidth': 0,
                         'width': '90%',
                         'textAlign': 'left'
-                        #'cursor': 'pointer'
                         }
                     ]
                 )
@@ -215,6 +203,39 @@ def add_category(n_clicks, n_submit, remove_click, cat_input, children, arg_drop
 
 
 @app.callback(
+    Output('app-header', 'children'),
+        Input('btn-new-data', 'n_clicks'),
+    State('app-header', 'children')
+)
+def load_data_diag(open_clicks, children):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    children.append(html_generators.open_project_modal())
+    return children
+
+
+@app.callback(
+    Output('upload-dialog', 'is_open'),
+    Output("dialog-header", 'children'),
+        Input('upload-data', 'contents'),
+        Input('close-upload-diag', 'n_clicks'),
+    State('upload-data', 'filename')
+)
+def show_upload_dialog(content, n_clicks, filename):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+
+    header = dbc.ModalHeader(f"File Upload for {filename}"),
+
+    if trigger == 'close-upload-diag':
+        return False, header
+    else:
+        return True, header
+
+
+
+@app.callback(
     Output('argument-detail-box', 'children'),
     Output('arg-table', 'data'),
     Output('algo-table', 'data'),
@@ -222,11 +243,9 @@ def add_category(n_clicks, n_submit, remove_click, cat_input, children, arg_drop
         Input('arg-table', 'dropdown'),
         Input('arg-table', 'data'),
         Input('algo-table', 'data'),
-        Input('upload-data', 'contents'),
     State('argument-detail-box', 'children'),
-    State('upload-data', 'filename')
 )
-def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, ul_table, details_children, ul_filename):
+def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, details_children):
     """handle changes to input table.
     There are two scenarios how the argument details or the data for the algo
     table can change.
@@ -238,7 +257,9 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, ul_tab
     of all the items that have this category selected.
     Third, a dropdown item is changed in either datatable (algo or arg). If
     that's the case, the change must be reflected in the other table as well.
-    In this case, the details table should also be refreshed
+    In this case, the details table should also be refreshed.
+    Fourth Case is when the entire table has to be changed due to a file Upload.
+    In this case, all data has to be reset.
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate

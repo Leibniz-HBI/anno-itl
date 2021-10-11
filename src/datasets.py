@@ -32,7 +32,7 @@ def dataset_from_csv(filename):
         dataframe and search index of the dataset
     """
     pd_data = pd.read_csv(f'{DATA_PATH}/{filename}.csv')
-    return create_dataset(pd_data)
+    return create_dataset(pd_data, filename)
 
 def create_dataset(pd_data, name):
     """ Creates a dataset from a pandas Dataframe.
@@ -145,3 +145,10 @@ def add_metadata(dataframe, name):
     with open(f'{DATA_PATH}/datasets_meta.yaml', 'a') as f:
         f.write(yaml.dump(meta_dict))
 
+def load_meta_file():
+    if os.path.isfile(f'{DATA_PATH}/datasets_meta.yaml'):
+        with open(f'{DATA_PATH}/datasets_meta.yaml', 'r') as f:
+            meta = yaml.safe_load(f)
+        return meta
+    else:
+         return None
