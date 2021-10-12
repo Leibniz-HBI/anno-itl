@@ -19,7 +19,7 @@ app = dash.Dash(external_stylesheets=[dbc.themes.JOURNAL],
                 suppress_callback_exceptions = True
                 )
 
-dcc.Store(id='uploaded-data')
+META = datasets.load_meta_file()
 
 SIMILARITY_SEARCH_RESULTS = 10
 
@@ -275,6 +275,47 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, detail
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
         return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+
+
+@app.callback(
+    Output('dataset-name-invalid-message', 'children'),
+    Output('dataset-name-input', 'valid'),
+    Output('dataset-name-input', 'invalid'),
+    Input('dataset-name-input', 'value')
+)
+def validate_dataset_creation(name):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    if len(name) < 4:
+        return "not displayed", False, False
+    pattern = re.compile(r"^[a-zA-Z0-9_]{4,30}$")
+    valid = True if pattern.match(name) else False
+    if not valid:
+        return "Name not valid", False, True
+    else:
+        if name in META:
+            return "Name already taken", False, True
+        else:
+            return "not displayed", True, False
+
+
+@app.callback(
+    Output('dataset-description-invalid-message', 'children'),
+    Output('dataset-description-input', 'valid'),
+    Output('dataset-description-input', 'invalid'),
+    Input('dataset-description-input', 'value')
+)
+def validate_dataset_creation(description):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    if len(description) < 10:
+        return "not displayed", False, False
+    pattern = re.compile(r"^[a-zA-Z0-9_äÄÖöÜüß ,!.?]{10,500}$")
+    valid = True if pattern.match(description) else False
+    if not valid:
+        return "Description not valid", False, True
+    else:
+        return "not displayed", True, False
 
 
 
