@@ -124,9 +124,7 @@ def parse_contents(contents, filename):
             df = pd.read_excel(io.BytesIO(decoded))
     except Exception as e:
         print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
+        return None
     return df
 
 

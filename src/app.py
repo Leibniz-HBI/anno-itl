@@ -283,7 +283,7 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, detail
     Output('dataset-name-input', 'invalid'),
     Input('dataset-name-input', 'value')
 )
-def validate_dataset_creation(name):
+def validate_dataset_name_creation(name):
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(name) < 4:
@@ -305,7 +305,7 @@ def validate_dataset_creation(name):
     Output('dataset-description-input', 'invalid'),
     Input('dataset-description-input', 'value')
 )
-def validate_dataset_creation(description):
+def validate_dataset_desc_creation(description):
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(description) < 10:
@@ -316,6 +316,32 @@ def validate_dataset_creation(description):
         return "Description not valid", False, True
     else:
         return "not displayed", True, False
+
+
+@app.callback(
+    Output('dataset-upload-button', 'color'),
+    Output('dataset-file-input', 'data-valid'),
+    Output('dataset-load-spinner', 'children'),
+    Input('dataset-file-input', 'contents'),
+    State('dataset-file-input', 'filename'),
+)
+def validate_dataset_upload(upload, filename):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    valid_file_endings = ['.xls', '.csv', '.ctv']
+    if not filename[-4:] in valid_file_endings:
+        return 'danger', False, 'Not a valid File type'
+    df = datasets.parse_contents(upload, filename)
+    if df is not None:
+        if 'text unit' in df.columns:
+            return 'success', True, 'Dataset valid'
+        else:
+            return 'danger', False, 'File does not contain column named text unit'
+    else:
+        'danger', False, 'File was not readable'
+
+
+
 
 
 

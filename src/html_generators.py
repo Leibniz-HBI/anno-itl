@@ -43,24 +43,17 @@ dataset_name_input = dbc.FormGroup([
 
 
 dataset_upload = dbc.FormGroup([
-   dcc.Upload(
-    id='upload-dataset',
-    children=html.Div([
-        'Drag and Drop or ',
-        html.A('Select File')
-    ]),
-    style={
-        'width': '50%',
-        'height': '40px',
-        'lineHeight': '60px',
-        'borderWidth': '1px',
-        'borderStyle': 'dashed',
-        'borderRadius': '5px',
-        'textAlign': 'center',
-        'margin': '5px'
-    },
-),
-dbc.FormText('select an csv, ctv or xls file, please!')
+    dcc.Upload(
+        id='dataset-file-input',
+        children=dbc.Button([
+            dbc.Spinner(html.Div('Upload Dataset',id="dataset-load-spinner"), size="sm")
+            ],
+            color="primary",
+            id = 'dataset-upload-button'
+            )
+        ),
+    html.Div(hidden=True, **{'data-valid': False}, id='upload-data-valid'),
+    dbc.FormText("must be a .csv, .ctv or .xls file, containing a row  text unit")
 ])
 
 dataset_description_input = dbc.FormGroup([
@@ -82,7 +75,8 @@ create_dataset_form = dbc.Form([dataset_name_input,
                                dataset_upload,
                                dataset_description_input,
                                dataset_button
-                              ])
+                              ],
+                              style= {'width': '75%'})
 
 
 def open_project_modal():
