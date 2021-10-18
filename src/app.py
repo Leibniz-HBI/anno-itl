@@ -376,6 +376,8 @@ def validate_dataset_upload(upload, filename):
     Output('manage-datasets-modal', 'is_open'),
     Output('current_dataset', 'data'),
     Output('loaded-new-dataset', 'data-new-dataset'),
+    Output('submit-text', 'children'),
+    Output('submit-text', 'color'),
     Input('add-dataset-button', 'n_clicks'),
     Input('close-upload-diag', 'n_clicks'),
     State('dataset-name-input', 'valid'),
@@ -394,11 +396,15 @@ def finalize_data_dialogue(add_button, close_button, name_valid, desc_valid, new
         if name_valid and desc_valid and new_data:
             print(f'type from store is {type(new_data)}',)
             datasets.create_dataset(new_data, name, description)
-            return False, {'dataset_name': name}, n_dataset_loads + 1
+            return False, {'dataset_name': name}, n_dataset_loads + 1, 'adding', 'success'
         else:
-            return True, current_dataset, n_dataset_loads
+            invalid_item_names = ['name', 'description', 'uploaded data']
+            invalid_items = [name for name, bool in zip(invalid_item_names, [name_valid, desc_valid, new_data]) if not bool]
+            error_message = f"""check your input! The following input{'s' if len(invalid_items)>1 else ''}
+            {'were' if len(invalid_items)>1 else 'is'} not valid: {', '.join(invalid_items)}"""
+            return True, current_dataset, n_dataset_loads, error_message, 'danger'
     else:
-        return False , {}, n_dataset_loads
+        return False , current_dataset, n_dataset_loads, 'closing', 'success'
 
 
 

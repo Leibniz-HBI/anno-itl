@@ -68,18 +68,21 @@ dataset_description_input = dbc.FormGroup([
     )
 ])
 
-dataset_button = dbc.Button(
-    dbc.Spinner(html.Div('Create!',id="dataset-create-spinner"), size="sm"),
-    color="warning",
-    id='add-dataset-button'
-)
+dataset_submit_button = dbc.FormGroup([
+    dbc.Button(
+        dbc.Spinner(html.Div('Create!', id="dataset-create-spinner"), size="sm"),
+        color="warning",
+        id='add-dataset-button'
+    ),
+    dbc.FormText("create dataset", id='submit-text')
+])
 
 create_dataset_form = dbc.Form([dataset_name_input,
                                dataset_upload,
                                dataset_description_input,
-                               dataset_button
+                               dataset_submit_button
                               ],
-                              style= {'width': '75%'})
+                              style= {'width': '60%'})
 
 
 def open_project_modal():
