@@ -165,8 +165,8 @@ def add_category(n_clicks, n_submit, remove_click, n_dataset_loads, cat_input, c
                 algo_dropdown = arg_dropdown
             else:
                 arg_dropdown = {'category': {
-                                'options': [{'label': cat_input, 'value': cat_input}]
-                                }
+                                    'options': [{'label': cat_input, 'value': cat_input}]
+                                    }
                                 }
                 algo_dropdown = arg_dropdown
     elif trigger.split('.')[0] == 'loaded-new-dataset':
@@ -178,12 +178,13 @@ def add_category(n_clicks, n_submit, remove_click, n_dataset_loads, cat_input, c
                     cat,
                     html.Button(
                         'remove',
-                        id={'type': 'category-remove-btn', 'index': len(children)})
+                        id={'type': 'category-remove-btn', 'index': index})
                 ],
-                id={'type': 'category-item', 'index': len(children)},
-                className="category-container") for cat in categories]
-            arg_dropdown = {'category': {
-                'options': [{'label': cat, 'value': cat} for cat in categories]
+                id={'type': 'category-item', 'index': index},
+                className="category-container") for index, cat in enumerate(categories)]
+            arg_dropdown = {
+                'category': {
+                    'options': [{'label': cat, 'value': cat} for cat in categories]
                 }
             }
             algo_dropdown = arg_dropdown
@@ -268,7 +269,9 @@ def handle_input_table_change(
     of all the items that have this category selected.
     Third, a dropdown item is changed in either datatable (algo or arg). If
     that's the case, the change must be reflected in the other table as well.
-    In this case, the details table should also be refreshed.
+    In this case, the details table should also be refreshed. It might be that
+    there's no data in the algo table. In that case, no syncronization has to be
+    done.
     Fourth Case is when the entire table has to be changed due to a file Upload.
     In this case, the data of the algo table has to change and rest needs to be reset.
     """
@@ -277,7 +280,6 @@ def handle_input_table_change(
     trigger = dash.callback_context.triggered[0]['prop_id']
     # first case.
     if trigger == 'arg-table.active_cell':
-        print(current_dataset)
         details_table, algo_table_data = table_sync.active_cell_change(
             active_cell,
             arg_data,
@@ -293,7 +295,11 @@ def handle_input_table_change(
         return details_children, new_arg_data, new_algo_data
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
-        return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+        if algo_data:
+            return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+        else:
+            return details_children, arg_data, algo_data
+    # fourth case load new dataset
     elif trigger == 'current_dataset.data':
         return [], new_data, []
 
@@ -355,7 +361,10 @@ def validate_dataset_upload(upload, filename):
     df = datasets.parse_contents(upload, filename)
     if df is not None:
         if 'text unit' in df.columns:
-            print(f"returned to the store is type {type(df.to_dict('records'))}")
+            if 'category' not in df:
+                df['category'] = None
+            if 'id' not in df:
+                df.insert(0, 'id', df.index)
             return 'success', 'Dataset valid', df.to_dict('records')
         else:
             return 'danger', 'File does not contain column named text unit', {}

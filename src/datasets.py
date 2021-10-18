@@ -68,7 +68,7 @@ def create_dataset(data, name, description):
         sentence_embeddings = model.encode(pd_data['text unit'], convert_to_numpy=True)
     if not search_index:
         search_index = create_faiss_index(sentence_embeddings, name)
-    pd_data.to_csv(f'{DATA_PATH}/{name}.csv')
+    pd_data.to_csv(f'{DATA_PATH}/{name}.csv', index=False)
     return True
 
 
