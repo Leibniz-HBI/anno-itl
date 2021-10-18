@@ -3,6 +3,7 @@ giving suggestions for similar text units.
 """
 
 import re
+import json
 import pandas as pd
 import dash
 from dash import dash_table
@@ -16,24 +17,16 @@ import html_generators
 import table_sync
 
 app = dash.Dash(external_stylesheets=[dbc.themes.JOURNAL],
-                suppress_callback_exceptions = True
+                suppress_callback_exceptions=True
                 )
-
-META = datasets.load_meta_file()
 
 SIMILARITY_SEARCH_RESULTS = 10
 
 
-
-sentences_df, search_index = datasets.dataset_from_csv('sentences')
-
-# get all categories which are set in the csv except 'None' values
-categories = [cat for cat in sentences_df['category'].unique() if cat]
-
 app.layout = html.Div([
     html.Div(
         className='app-header',
-        id = 'app-header',
+        id='app-header',
         children=[
             html.Div('Annotation tool with Human in the Loop', className="app-header--title"),
             dbc.Button("Open or create project", color='primary', id='btn-new-data'),
@@ -42,23 +35,19 @@ app.layout = html.Div([
     html.Div(
         className="arg-list-pane",
         children=[
+            dcc.Store(id='current_dataset'),
+            dcc.Store(id='new_data'),
+            html.Div(hidden=True, **{'data-new-dataset': 0}, id='loaded-new-dataset'),
             html.Div(className="arg-list-box", children=[
                 html.Div('Argument Input', className="arg-list-header"),
                 dash_table.DataTable(
                     id='arg-table',
                     filter_action="native",
                     columns=[
-                        {'name': 'Argument', 'id': 'sentence'},
-                        {'name': 'Category', 'id': 'category',  'editable':True, 'presentation': 'dropdown'}
+                        {'name': 'Argument', 'id': 'text unit'},
+                        {'name': 'Category', 'id': 'category', 'editable': True, 'presentation': 'dropdown'}
                     ],
-                    dropdown= {
-                        'category': {
-                            'options': [
-                                {'label': cat, 'value': cat} for cat in categories
-                            ]
-                        }
-                    },
-                    data=sentences_df[['id', 'sentence','category']].to_dict('records'),
+                    data=[],
                     style_header={
                         'text_Align': 'center',
                     },
@@ -68,12 +57,12 @@ app.layout = html.Div([
                         'page_size': '50',
                     },
                     style_data_conditional=[
-                        {'if': {'column_id': 'sentence'},
-                        'textOverflow': 'ellipsis',
-                        'maxWidth': 0,
-                        'width': '90%',
-                        'textAlign': 'left'
-                        #'cursor': 'pointer'
+                        {'if': {'column_id': 'text unit'},
+                            'textOverflow': 'ellipsis',
+                            'maxWidth': 0,
+                            'width': '90%',
+                            'textAlign': 'left'
+                            # 'cursor': 'pointer'
                         }
                     ]
                 )]
@@ -94,9 +83,6 @@ app.layout = html.Div([
                 html.Ul(
                     id='cat_list',
                     children=[
-                        html.Div(category, {'type': 'category-item', 'index': index},
-                                 className="category-container")
-                        for index, category in enumerate(categories)
                     ])
                 ]
             ),
@@ -105,16 +91,9 @@ app.layout = html.Div([
                 dash_table.DataTable(
                     id='algo-table',
                     columns=[
-                        {'name': 'Argument', 'id': 'sentence'},
+                        {'name': 'Argument', 'id': 'text unit'},
                         {'name': 'Category', 'id': 'category',  'editable':True, 'presentation': 'dropdown'}
                     ],
-                    dropdown= {
-                        'category': {
-                            'options': [
-                                {'label': cat, 'value': cat} for cat in categories
-                            ]
-                        }
-                    },
                     data=[],
                     style_header={
                         'text_Align': 'center',
@@ -125,7 +104,7 @@ app.layout = html.Div([
                         'page_size': '50',
                     },
                     style_data_conditional=[
-                        {'if': {'column_id': 'sentence'},
+                        {'if': {'column_id': 'text unit'},
                         'textOverflow': 'ellipsis',
                         'maxWidth': 0,
                         'width': '90%',
@@ -145,66 +124,94 @@ app.layout = html.Div([
     Output('cat_list', 'children'),
     Output('arg-table', 'dropdown'),
     Output('algo-table', 'dropdown'),
-        Input('submit-cat-button', 'n_clicks'),
-        Input("cat-input", "n_submit"),
-        Input({'type': 'category-remove-btn', 'index': ALL}, 'n_clicks'),
+    Input('submit-cat-button', 'n_clicks'),
+    Input("cat-input", "n_submit"),
+    Input({'type': 'category-remove-btn', 'index': ALL}, 'n_clicks'),
+    Input('loaded-new-dataset', 'data-new-dataset'),
     State('cat-input', 'value'),
     State('cat_list', 'children'),
     State('arg-table', 'dropdown'),
-    State('algo-table', 'dropdown')
+    State('algo-table', 'dropdown'),
+    State('new_data', 'data')
 )
-def add_category(n_clicks, n_submit, remove_click, cat_input, children, arg_dropdown, algo_dropdown):
+def add_category(n_clicks, n_submit, remove_click, n_dataset_loads, cat_input, children, arg_dropdown, algo_dropdown, new_data):
     """Handle Category input.
     Data from the input box can be submitted with enter and button click. If
     that happens, a new category will be created if it doesn't exist yet.
     If the remove button of a category is presesd, the corresponding list
     element will be deleted.
     """
-    if (n_clicks or n_submit) and cat_input:
-        trigger_id = dash.callback_context.triggered[0]['prop_id']
-        if trigger_id.startswith('submit-cat-button') or trigger_id.startswith('cat-input'):
-            already_there = False
-            for category in children:
-                if cat_input in category['props']['children']:
-                    already_there = True
-            if not already_there:
-                new_cat = html.Li(
-                    children=[
-                        cat_input,
-                        html.Button(
-                            'remove',
-                            id={'type': 'category-remove-btn', 'index': len(children)})
-                    ],
-                    id={'type': 'category-item', 'index': len(children)},
-                    className="category-container")
-                children.append(new_cat)
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    trigger = dash.callback_context.triggered[0]['prop_id']
+    if trigger.split('.')[0] in ['submit-cat-button', 'cat-input'] and cat_input:
+        already_there = False
+        for category in children:
+            if cat_input in category['props']['children']:
+                already_there = True
+        if not already_there:
+            new_cat = html.Li(
+                children=[
+                    cat_input,
+                    html.Button(
+                        'remove',
+                        id={'type': 'category-remove-btn', 'index': len(children)})
+                ],
+                id={'type': 'category-item', 'index': len(children)},
+                className="category-container")
+            children.append(new_cat)
+            if arg_dropdown:
                 arg_dropdown['category']['options'] = arg_dropdown['category']['options'] + [{'label': cat_input, 'value': cat_input}]
-                algo_dropdown['category']['options'] = algo_dropdown['category']['options'] + [{'label': cat_input, 'value': cat_input}]
-        else:
-            button_id = int(re.findall('\d+', trigger_id)[0])
-            for child in children:
-                if child['props']['children'][1]['props']['id']['index'] == button_id:
-                    print(child)
-                    children.remove(child)
-                    try:
-                        arg_dropdown['category']['options'].remove(
-                            {'label': child['props']['children'][0], 'value': child['props']['children'][0]
-                            })
-                    except ValueError:
-                        print(f'no option {cat_input} in dropdown')
-                    try:
-                        algo_dropdown['category']['options'].remove(
-                            {'label': child['props']['children'][0], 'value': child['props']['children'][0]
-                            })
-                    except ValueError:
-                        print(f'no option {cat_input} in dropdown')
+                algo_dropdown = arg_dropdown
+            else:
+                arg_dropdown = {'category': {
+                                'options': [{'label': cat_input, 'value': cat_input}]
+                                }
+                                }
+                algo_dropdown = arg_dropdown
+    elif trigger.split('.')[0] == 'loaded-new-dataset':
+        tmp_df = pd.DataFrame(new_data)
+        if 'category' in tmp_df:
+            categories = [cat for cat in tmp_df['category'].unique() if cat]
+            children = [html.Li(
+                children=[
+                    cat,
+                    html.Button(
+                        'remove',
+                        id={'type': 'category-remove-btn', 'index': len(children)})
+                ],
+                id={'type': 'category-item', 'index': len(children)},
+                className="category-container") for cat in categories]
+            arg_dropdown = {'category': {
+                'options': [{'label': cat, 'value': cat} for cat in categories]
+                }
+            }
+            algo_dropdown = arg_dropdown
+    else:
+        button_id = int(re.findall('\d+', trigger)[0])
+        for child in children:
+            if child['props']['children'][1]['props']['id']['index'] == button_id:
+                print(child)
+                children.remove(child)
+                try:
+                    arg_dropdown['category']['options'].remove(
+                        {'label': child['props']['children'][0], 'value': child['props']['children'][0]
+                        })
+                except ValueError:
+                    print(f'no option {cat_input} in dropdown')
+                try:
+                    algo_dropdown['category']['options'].remove(
+                        {'label': child['props']['children'][0], 'value': child['props']['children'][0]
+                        })
+                except ValueError:
+                    print(f'no option {cat_input} in dropdown')
 
     return children, arg_dropdown, algo_dropdown
 
 
 @app.callback(
     Output('app-header', 'children'),
-        Input('btn-new-data', 'n_clicks'),
+    Input('btn-new-data', 'n_clicks'),
     State('app-header', 'children')
 )
 def load_data_diag(open_clicks, children):
@@ -217,9 +224,9 @@ def load_data_diag(open_clicks, children):
 @app.callback(
     Output('upload-dialog', 'is_open'),
     Output("dialog-header", 'children'),
-        Input('upload-data', 'contents'),
-        Input('close-upload-diag', 'n_clicks'),
-    State('upload-data', 'filename')
+    Input('upload-data', 'contents'),
+    Input('close-upload-diag', 'n_clicks'),
+    State('upload-data', 'filename'),
 )
 def show_upload_dialog(content, n_clicks, filename):
     if not dash.callback_context.triggered[0]['value']:
@@ -234,18 +241,22 @@ def show_upload_dialog(content, n_clicks, filename):
         return True, header
 
 
-
 @app.callback(
     Output('argument-detail-box', 'children'),
     Output('arg-table', 'data'),
     Output('algo-table', 'data'),
-        Input('arg-table', 'active_cell'),
-        Input('arg-table', 'dropdown'),
-        Input('arg-table', 'data'),
-        Input('algo-table', 'data'),
+    Input('arg-table', 'active_cell'),
+    Input('arg-table', 'dropdown'),
+    Input('arg-table', 'data'),
+    Input('algo-table', 'data'),
+    Input('current_dataset', 'data'),
+    State('new_data', 'data'),
     State('argument-detail-box', 'children'),
+    State('loaded-new-dataset', 'data-new-dataset')
 )
-def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, details_children):
+def handle_input_table_change(
+        active_cell, dropdown, arg_data,
+        algo_data, current_dataset, new_data, details_children, n_loaded_datasets ):
     """handle changes to input table.
     There are two scenarios how the argument details or the data for the algo
     table can change.
@@ -259,22 +270,32 @@ def handle_input_table_change(active_cell, dropdown, arg_data, algo_data, detail
     that's the case, the change must be reflected in the other table as well.
     In this case, the details table should also be refreshed.
     Fourth Case is when the entire table has to be changed due to a file Upload.
-    In this case, all data has to be reset.
+    In this case, the data of the algo table has to change and rest needs to be reset.
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id']
     # first case.
     if trigger == 'arg-table.active_cell':
-        details_table, algo_table_data = table_sync.active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RESULTS)
+        print(current_dataset)
+        details_table, algo_table_data = table_sync.active_cell_change(
+            active_cell,
+            arg_data,
+            current_dataset['dataset_name'],
+            SIMILARITY_SEARCH_RESULTS)
         return details_table, arg_data, algo_table_data
     # second case.
     elif trigger == 'arg-table.dropdown':
-        new_arg_data, new_algo_data =  table_sync.sync_categories(dropdown, arg_data, algo_data)
+        new_arg_data, new_algo_data = table_sync.sync_categories(
+            dropdown,
+            arg_data,
+            algo_data)
         return details_children, new_arg_data, new_algo_data
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
         return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+    elif trigger == 'current_dataset.data':
+        return [], new_data, []
 
 
 @app.callback(
@@ -293,7 +314,7 @@ def validate_dataset_name_creation(name):
     if not valid:
         return "Name not valid", False, True
     else:
-        if name in META:
+        if datasets.check_dataset_exists(name):
             return "Name already taken", False, True
         else:
             return "not displayed", True, False
@@ -320,8 +341,8 @@ def validate_dataset_desc_creation(description):
 
 @app.callback(
     Output('dataset-upload-button', 'color'),
-    Output('dataset-file-input', 'data-valid'),
     Output('dataset-load-spinner', 'children'),
+    Output('new_data', 'data'),
     Input('dataset-file-input', 'contents'),
     State('dataset-file-input', 'filename'),
 )
@@ -330,15 +351,45 @@ def validate_dataset_upload(upload, filename):
         raise dash.exceptions.PreventUpdate
     valid_file_endings = ['.xls', '.csv', '.ctv']
     if not filename[-4:] in valid_file_endings:
-        return 'danger', False, 'Not a valid File type'
+        return 'danger', 'Not a valid File type', {}
     df = datasets.parse_contents(upload, filename)
     if df is not None:
         if 'text unit' in df.columns:
-            return 'success', True, 'Dataset valid'
+            print(f"returned to the store is type {type(df.to_dict('records'))}")
+            return 'success', 'Dataset valid', df.to_dict('records')
         else:
-            return 'danger', False, 'File does not contain column named text unit'
+            return 'danger', 'File does not contain column named text unit', {}
     else:
-        'danger', False, 'File was not readable'
+        'danger', 'File was not readable', {}
+
+
+@app.callback(
+    Output('manage-datasets-modal', 'is_open'),
+    Output('current_dataset', 'data'),
+    Output('loaded-new-dataset', 'data-new-dataset'),
+    Input('add-dataset-button', 'n_clicks'),
+    Input('close-upload-diag', 'n_clicks'),
+    State('dataset-name-input', 'valid'),
+    State('dataset-description-input', 'valid'),
+    State('new_data', 'data'),
+    State('dataset-name-input', 'value'),
+    State('dataset-description-input', 'value'),
+    State('current_dataset', 'data'),
+    State('loaded-new-dataset', 'data-new-dataset')
+)
+def finalize_data_dialogue(add_button, close_button, name_valid, desc_valid, new_data, name, description, current_dataset, n_dataset_loads):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if trigger == 'add-dataset-button':
+        if name_valid and desc_valid and new_data:
+            print(f'type from store is {type(new_data)}',)
+            datasets.create_dataset(new_data, name, description)
+            return False, {'dataset_name': name}, n_dataset_loads + 1
+        else:
+            return True, current_dataset, n_dataset_loads
+    else:
+        return False , {}, n_dataset_loads
 
 
 

@@ -52,8 +52,7 @@ dataset_upload = dbc.FormGroup([
             id = 'dataset-upload-button'
             )
         ),
-    html.Div(hidden=True, **{'data-valid': False}, id='upload-data-valid'),
-    dbc.FormText("must be a .csv, .ctv or .xls file, containing a row  text unit")
+    dbc.FormText("must be a .csv, .tsv or .xls file, containing a row  text unit")
 ])
 
 dataset_description_input = dbc.FormGroup([
@@ -69,7 +68,11 @@ dataset_description_input = dbc.FormGroup([
     )
 ])
 
-dataset_button = dbc.Button("Create!", color="warning", id='add-dataset')
+dataset_button = dbc.Button(
+    dbc.Spinner(html.Div('Create!',id="dataset-create-spinner"), size="sm"),
+    color="warning",
+    id='add-dataset-button'
+)
 
 create_dataset_form = dbc.Form([dataset_name_input,
                                dataset_upload,
@@ -112,7 +115,7 @@ def open_project_modal():
         )
     )
     ],
-    id="open-modal",
+    id="manage-datasets-modal",
     size="xl",
     is_open=True,
     )

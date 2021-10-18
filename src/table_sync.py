@@ -30,7 +30,7 @@ def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RE
     """
     dff = pd.DataFrame(arg_data)
     sentence_data = dff.iloc[active_cell['row_id']]
-    sentence = sentence_data['sentence']
+    sentence = sentence_data['text unit']
     details_table = html_generators.create_details_table(sentence_data, header='argument details')
     similarity_indices = datasets.search_faiss_with_string(
         sentence,

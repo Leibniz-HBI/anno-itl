@@ -34,39 +34,42 @@ def dataset_from_csv(filename):
     pd_data = pd.read_csv(f'{DATA_PATH}/{filename}.csv')
     return create_dataset(pd_data, filename)
 
-def create_dataset(pd_data, name):
+
+def create_dataset(data, name, description):
     """ Creates a dataset from a pandas Dataframe.
 
-    Takes a pandas Dataframe as input and creates a dataset for the annotation
-    tool from it.
-    The dataframe needs to have a column named sentence.
+    Takes a dict('records') as input and create a dataframe from it
+    The dataframe needs to have a column named text unit.
     The function will try to first load an index, then to load embeddings and
     then will create and store embeddings and a faiss index.
     The function will also look for a column with IDs, if no column with Ids is
     in the csv, the ids will be generated from the dataframes' index.
 
     Args:
-        pd_data: pandas dataframe, needs column sentence
+        pd_data: pandas dataframe, needs column text unit
 
     Returns:
         dataframe and search index of the dataset
     """
 
     # add blank category column to data without category
+    pd_data = pd.DataFrame(data)
     if 'category' not in pd_data:
         pd_data['category'] = None
     if 'id' not in pd_data:
         pd_data.insert(0, 'id', pd_data.index)
-    add_metadata(pd_data, name)
+    add_metadata(pd_data, name, description)
+    search_index = None
     if os.path.isfile(f'{FAISS_PATH}/{name}.faiss'):
         search_index = faiss.read_index(f'{FAISS_PATH}/{name}.faiss')
     elif os.path.isfile(f'{EMBEDDINGS_PATH}/{name}.npy'):
         sentence_embeddings = np.load(f'{EMBEDDINGS_PATH}/{name}.npy')
     else:
-        sentence_embeddings = model.encode(pd_data['sentence'], convert_to_numpy=True)
+        sentence_embeddings = model.encode(pd_data['text unit'], convert_to_numpy=True)
     if not search_index:
-        search_index = create_faiss_index(sentence_embeddings, filename)
-    return pd_data, search_index
+        search_index = create_faiss_index(sentence_embeddings, name)
+    pd_data.to_csv(f'{DATA_PATH}/{name}.csv')
+    return True
 
 
 def store_embeddings(embeddings, filename):
@@ -75,10 +78,6 @@ def store_embeddings(embeddings, filename):
     same name for loading.
     """
     np.save(f'{EMBEDDINGS_PATH}/{filename}.npy', embeddings)
-
-
-def create_sentence_dict(id, sentence, category = ''):
-    return {'id': id, 'sentence': sentence, 'category': category}
 
 
 def create_faiss_index(sentence_embeddings, name):
@@ -98,11 +97,15 @@ def create_faiss_index(sentence_embeddings, name):
     return index
 
 
-def search_faiss_with_string(text, index, k):
+def search_faiss_with_string(text, index_name, k):
     """ searches a faiss index with the model and returns the indices of the k
     most similar entries in the index as a list.
     """
-    _, I = index.search(model.encode([text]), k = k +1  )
+    if os.path.isfile(f'{FAISS_PATH}/{index_name}.faiss'):
+        search_index = faiss.read_index(f'{FAISS_PATH}/{index_name}.faiss')
+    else:
+        raise FileNotFoundError(f'no faiss index for name {index_name}')
+    _, I = search_index.search(model.encode([text]), k = k +1  )
     return I.tolist()[0][1:]
 
 
@@ -115,7 +118,7 @@ def parse_contents(contents, filename):
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')))
-        elif filename.endswith('.ctv'):
+        elif filename.endswith('.tsv'):
             # Assume that the user uploaded a CSV file
             df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')), sep='\t')
@@ -128,7 +131,7 @@ def parse_contents(contents, filename):
     return df
 
 
-def add_metadata(dataframe, name):
+def add_metadata(dataframe, name, description):
     """writes and gathers metadata from dataset.
 
     Args:
@@ -137,11 +140,13 @@ def add_metadata(dataframe, name):
     """
     meta_dict = {
         name: {
-            'size': dataframe.shape[0]
+            'size': dataframe.shape[0],
+            'description': description
         }
     }
     with open(f'{DATA_PATH}/datasets_meta.yaml', 'a') as f:
         f.write(yaml.dump(meta_dict))
+
 
 def load_meta_file():
     if os.path.isfile(f'{DATA_PATH}/datasets_meta.yaml'):
@@ -150,3 +155,14 @@ def load_meta_file():
         return meta
     else:
          return None
+
+
+def check_dataset_exists(name):
+    meta = load_meta_file()
+    if meta:
+        if name in meta:
+            return True
+        else:
+            return False
+    else:
+        return False
