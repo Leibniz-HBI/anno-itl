@@ -1,17 +1,17 @@
-.category-pane {
+#label-pane {
   float: left;
   width: 33%;
   height: 85vh;
   border-right: 5px solid rgb(32, 87, 158);
 }
 
-.category-box{
+#label-box{
   border-bottom: 5px solid rgb(32, 87, 158);
   height: 55%;
   overflow-y: hidden;
 }
 
-.category-container {
+.label-container {
   font-size: large;
   height: 10%;
   padding-left: 2px;
@@ -21,12 +21,12 @@
   border-left: 1px solid #ddd
 }
 
-.category-remove-btn {
+.label-remove-btn {
   float: right;
 }
 
 
 
-.algo-box{
+#algo-box{
   font-size: medium;
 }

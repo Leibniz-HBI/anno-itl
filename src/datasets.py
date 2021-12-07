@@ -10,8 +10,6 @@ from sentence_transformers import SentenceTransformer, util
 from sentence_transformers.models import Normalize
 import numpy as np
 import faiss
-from dash import html
-
 
 embedding_model = SentenceTransformer('paraphrase-mpnet-base-v2')
 
@@ -35,41 +33,82 @@ def dataset_from_csv(filename):
     return create_dataset(pd_data, filename)
 
 
-def create_dataset(data, name, description):
+def create_dataset(data, name, description, text_column):
     """ Creates a dataset from a pandas Dataframe.
 
     Takes a dict('records') as input and create a dataframe from it
-    The dataframe needs to have a column named text unit.
     The function will try to first load an index, then to load embeddings and
     then will create and store embeddings and a faiss index.
     The function will also look for a column with IDs, if no column with Ids is
     in the csv, the ids will be generated from the dataframes' index.
 
     Args:
-        pd_data: pandas dataframe, needs column text unit
+        data: data records of the dataset
+        name: dataset name
+        description: dataset description
+        text_column: dataset column from which to extract text data
 
     Returns:
         dataframe and search index of the dataset
     """
-
-    # add blank category column to data without category
     pd_data = pd.DataFrame(data)
-    if 'category' not in pd_data:
-        pd_data['category'] = None
     if 'id' not in pd_data:
         pd_data.insert(0, 'id', pd_data.index)
-    add_metadata(pd_data, name, description)
+    add_ds_metadata(pd_data, name, description, text_column)
     search_index = None
     if os.path.isfile(f'{FAISS_PATH}/{name}.faiss'):
         search_index = faiss.read_index(f'{FAISS_PATH}/{name}.faiss')
     elif os.path.isfile(f'{EMBEDDINGS_PATH}/{name}.npy'):
         sentence_embeddings = np.load(f'{EMBEDDINGS_PATH}/{name}.npy')
     else:
-        sentence_embeddings = model.encode(pd_data['text unit'], convert_to_numpy=True)
+        sentence_embeddings = model.encode(pd_data[text_column], convert_to_numpy=True)
     if not search_index:
         search_index = create_faiss_index(sentence_embeddings, name)
     pd_data.to_csv(f'{DATA_PATH}/{name}.csv', index=False)
     return True
+
+
+def get_dataset_labels(dataset_name):
+    """returns the column names of a dataset and their number of unique items.
+
+    Args:
+        dataset_name: name of the dataset
+
+    Returns:
+        list of tuples: (column name, number of unique items in column)
+    """
+    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
+    return [(key, df[key].nunique()) for key in df.keys() if not key.endswith('_label')]
+
+
+def create_project(dataset_name, project_name, label_column=False):
+    meta = load_meta_file('datasets_meta.yaml')
+    text_column = meta[dataset_name]['text column']
+    dataset = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
+    if label_column:
+        dataset[f'{project_name}_label'] = dataset[label_column]
+    else:
+         dataset[f'{project_name}_label'] = None
+    dataset.to_csv(f'{DATA_PATH}/{dataset_name}.csv', index=False)
+    project_dict = {
+        project_name: {
+            'dataset': dataset_name,
+            'labels': 1,
+            'progress': 0
+        }
+    }
+    with open(f'{DATA_PATH}/projects_meta.yaml', 'a') as f:
+        f.write(yaml.dump(project_dict))
+    return dataset[["id", "text unit", f'{project_name}_label']]
+
+
+def load_project(project_name):
+    existing_projects = load_meta_file('projects_meta.yaml')
+    if project_name in existing_projects.keys():
+        dataset_name = existing_projects[project_name]["dataset"]
+        dataset = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
+        return dataset[["id", "text unit", f'{project_name}_label']], dataset_name
+
 
 
 def store_embeddings(embeddings, filename):
@@ -131,7 +170,7 @@ def parse_contents(contents, filename):
     return df
 
 
-def add_metadata(dataframe, name, description):
+def add_ds_metadata(dataframe, name, description, text_column):
     """writes and gathers metadata from dataset.
 
     Args:
@@ -141,24 +180,48 @@ def add_metadata(dataframe, name, description):
     meta_dict = {
         name: {
             'size': dataframe.shape[0],
-            'description': description
+            'description': description,
+            'text column': text_column,
         }
     }
     with open(f'{DATA_PATH}/datasets_meta.yaml', 'a') as f:
         f.write(yaml.dump(meta_dict))
 
 
-def load_meta_file():
-    if os.path.isfile(f'{DATA_PATH}/datasets_meta.yaml'):
-        with open(f'{DATA_PATH}/datasets_meta.yaml', 'r') as f:
+def load_meta_file(name):
+    """loads a metadata file
+
+    Args:
+        name: filename
+
+    Returns:
+        dictionary of the file or an empty dictionary if file not present.
+        Could probably log something when logging is there.
+    """
+    if os.path.isfile(f'{DATA_PATH}/{name}'):
+        with open(f'{DATA_PATH}/{name}', 'r') as f:
             meta = yaml.safe_load(f)
         return meta
     else:
-         return None
+         return {}
 
 
-def check_dataset_exists(name):
-    meta = load_meta_file()
+def check_name_exists(name, dataset='True'):
+    """Check if project or dataset name exists in meta file.
+
+
+    Args:
+        name: name to check
+        dataset: dataset flag. Defaults to 'True'. If false, check projet meta
+        file instead.
+
+    Returns:
+        Boolean whether the name exists or not.
+    """
+    if dataset:
+        meta = load_meta_file('datasets_meta.yaml')
+    else:
+        meta = load_meta_file('projects_meta.yaml')
     if meta:
         if name in meta:
             return True

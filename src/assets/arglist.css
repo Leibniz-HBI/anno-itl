@@ -1,4 +1,4 @@
-.arg-list-pane {
+#arg-list-pane {
   float: left;
   width: 40%;
   height: 85vh;
@@ -6,14 +6,14 @@
   border-left: 5px solid rgb(32, 87, 158);
 }
 
-.arg-list-box {
+#arg-list-box {
   border-bottom: 5px solid rgb(32, 87, 158);
   height: 55%;
   overflow-x: hidden;
   overflow-y: scroll;
 
 }
-.arg-container {
+#arg-container {
   font-size: large;
   padding-left: 2px;
   overflow: hidden;

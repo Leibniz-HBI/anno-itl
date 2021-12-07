@@ -41,11 +41,11 @@ def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RE
     return details_table, similarity_table_data
 
 
-def sync_categories(dropdown, arg_data, algo_data):
-    """Deletes category selections on category deletion from tables.
+def sync_labels(dropdown, arg_data, algo_data, project_name):
+    """Deletes label selections on label deletion from tables.
 
-    The function goes through all rows of the datatables and sets the category
-    of all rows with now deleted category back to `None`.
+    The function goes through all rows of the datatables and sets the label
+    of all rows with now deleted label back to `None`.
 
     Args:
         dropdown: dropdown options
@@ -53,26 +53,27 @@ def sync_categories(dropdown, arg_data, algo_data):
         algo_data: data from the algorithm table
 
     Returns:
-        arg_data and algo_data with new category information
+        arg_data and algo_data with new label information
     """
-    labels = [cat['label'] for cat in dropdown['category']['options']]
+    label_name = f'{project_name}_label'
+    labels = [lbl['label'] for lbl in dropdown[label_name]['options']]
     for index, row in enumerate(arg_data):
-        if row['category'] not in labels:
-            arg_data[index]['category'] = None
+        if row[label_name] not in labels:
+            arg_data[index][label_name] = None
     for index, row in enumerate(algo_data):
-        if row['category'] not in labels:
-            algo_data[index]['category'] = None
+        if row[label_name] not in labels:
+            algo_data[index][label_name] = None
     return arg_data, algo_data
 
 
 def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell):
-    """Syncs the selection of categories in both tables
+    """Syncs the selection of labels in both tables
 
     Based on the trigger, the values from the arg table are put into the algo
     table or vice versa. For the first case, a new slice of the arg table is
     created, for the second case, the values from the algo table are updated
     into the arg table.
-    The details table is also refreshed, so that category changes are reflected
+    The details table is also refreshed, so that label changes are reflected
     immediately.
     Args:
         arg_data : data from arg-table

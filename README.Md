@@ -3,7 +3,7 @@ An annotation tool for classifying short text such as tweets or phrases which
 were pre processed.
 The idea is that datasets are often too large to be annotated in its entirety by
 a human annotator. In order to make this task easier, we are working on an
-annotation tool that let's the user create their own categories and annotate a
+annotation tool that let's the user create their own labels and annotate a
 portion of teir datasets. Using a few shot learning algorithm, the rest of the
 dataset shall be annotated automatically.
 Furthermore, the tool makes suggestions to the annotator by providing
