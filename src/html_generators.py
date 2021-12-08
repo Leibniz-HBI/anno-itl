@@ -3,6 +3,7 @@
 
 import dash.html as html
 
+
 def create_table_row(input_tuple):
     """Create a dash table row from a tuple of inputs
     """

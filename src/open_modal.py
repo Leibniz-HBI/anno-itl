@@ -1,7 +1,5 @@
 from dash import dcc
 import dash.html as html
-from dash.dependencies import Input, Output, State, MATCH, ALL
-import plotly.express as px
 import dash_bootstrap_components as dbc
 import datasets
 
@@ -10,26 +8,25 @@ dataset_name_input = html.Div([
     dbc.Input(placeholder="Dataset Name", type="text", id='ds-name-input'),
     dbc.FormText("Please only _, A-Z,a-z and numbers; between 4 and 30 characters"),
     dbc.FormFeedback(
-    "Dataset name is valid and not taken", type="valid"
+        "Dataset name is valid and not taken", type="valid"
     ),
     dbc.FormFeedback(
-    "This name is not okay (never displayed, I think)",
-    id = 'dataset-name-invalid-message',
-    type="invalid",
+        "This name is not okay (never displayed, I think)",
+        id='dataset-name-invalid-message',
+        type="invalid",
     )
 ])
 
 
 dataset_upload = html.Div([
     dcc.Upload(
+        dbc.Button([dbc.Spinner(html.Div('Upload Dataset',
+                    id="dataset-load-spinner"), size="sm")],
+                   color="primary",
+                   id='dataset-upload-button'
+                   ),
         id='dataset-file-input',
-        children=dbc.Button([
-            dbc.Spinner(html.Div('Upload Dataset',id="dataset-load-spinner"), size="sm")
-            ],
-            color="primary",
-            id = 'dataset-upload-button'
-            )
-        ),
+    ),
     dbc.FormText("must be a .csv, .tsv or .xls file, containing a row  text unit")
 ])
 
@@ -40,18 +37,17 @@ text_unit_dropdown = dcc.Dropdown(
 )
 
 
-
-
 dataset_description_input = html.Div([
     dbc.Textarea(placeholder='Dataset description', id='ds-description-input'),
-    dbc.FormText("short description of the dataset, min 10, max 500 characters, no special chars please or I will personally come to your door"),
+    dbc.FormText("""short description of the dataset,
+     min 10, max 500 characters, no special chars please or I will personally come to your door"""),
     dbc.FormFeedback(
-    "Description is valid, at least formally.", type="valid"
+        "Description is valid, at least formally.", type="valid"
     ),
     dbc.FormFeedback(
-    "This name is not okay (never displayed, I think)",
-    id = 'dataset-description-invalid-message',
-    type="invalid",
+        "This name is not okay (never displayed, I think)",
+        id='dataset-description-invalid-message',
+        type="invalid",
     )
 ])
 
@@ -66,22 +62,18 @@ dataset_submit_button = html.Div([
 ])
 
 
-
-
 create_dataset_form = dbc.Form([dataset_name_input,
                                dataset_upload,
                                text_unit_dropdown,
                                dataset_description_input,
-                               dataset_submit_button
-                              ],
-                              style= {'width': '55%', 'display':'inline-block' },
-                              className="gy-5"
-)
+                               dataset_submit_button],
+                               style={'width': '55%', 'display': 'inline-block'},
+                               className="gy-5")
 
 
 def create_project_name_input(id, enabler=True):
     return html.Div([
-        dbc.Input(placeholder="Project Name", type="text", id=id, disabled = not enabler),
+        dbc.Input(placeholder="Project Name", type="text", id=id, disabled=not enabler),
         dbc.FormText("Please only _, A-Z,a-z and numbers; between 4 and 30 characters"),
         dbc.FormFeedback(
             "Project name is valid and not taken", type="valid"
@@ -93,39 +85,38 @@ def create_project_name_input(id, enabler=True):
         )
     ])
 
+
 check_project = dbc.Checkbox(
     id="ds-project-checkbox",
     className="checkbox-form",
     value=True,
-    label = "Create Project from Dataset?",
+    label="Create Project from Dataset?",
     label_class_name='checkbox-form-label'
 )
+
 
 check_label_input = dbc.Checkbox(
     id="ds-project-label-checkbox",
     className="checkbox-form",
     value=True,
-    label = "Add label information from dataset?",
+    label="Add label information from dataset?",
     label_class_name='checkbox-form-label'
 )
+
 
 label_selection_dropdown = dcc.Dropdown(
     id='ds-project-label-selection-dd',
     placeholder="Select a dataset column as label information (after upload)",
-    disabled=True
-)
-
+    disabled=True)
 
 
 create_project_form = dbc.Form([
     check_project,
     create_project_name_input('new-ds-proj-name'),
-    check_label_input,label_selection_dropdown],
-    style={'width': '40%', 'display':'inline-block', 'float': 'right'},
+    check_label_input, label_selection_dropdown],
+    style={'width': '40%', 'display': 'inline-block', 'float': 'right'},
     className="gy-5"
 )
-
-
 
 
 open_dropdown = dbc.DropdownMenu(
@@ -180,82 +171,90 @@ def open_project_modal():
     )
 
     create_label_input = dbc.Checkbox(
-    id="create-project-label-checkbox",
-    className="checkbox-form",
-    value=True,
-    label = "Add label information from dataset?",
-    label_class_name='checkbox-form-label'
+        id="create-project-label-checkbox",
+        className="checkbox-form",
+        value=True,
+        label="Add label information from dataset?",
+        label_class_name='checkbox-form-label'
     )
 
     create_label_selection_dropdown = dcc.Dropdown(
-    id='create-project-label-selection-dd',
-    placeholder="Select a dataset column as label information",
-    disabled=True
+        id='create-project-label-selection-dd',
+        placeholder="Select a dataset column as label information",
+        disabled=True
     )
 
     create_button = html.Div([
         dbc.Button(
-        "Create Project", color="success", id='create-project-btn',
-        disabled=not existing_datasets
+            "Create Project", color="success", id='create-project-btn',
+            disabled=not existing_datasets
         ),
         dbc.FormText("Create Project", id='proj-create-text')]
     )
     create_form = dbc.Form([
         create_error, create_dropdown,
         create_project_name_input('create-proj-name', existing_datasets),
-         create_label_input, create_label_selection_dropdown, create_button
-        ],
+        create_label_input, create_label_selection_dropdown, create_button],
         style={'width': '45%', 'float': 'left'})
 
-
-
     modal = dbc.Modal([
-    dbc.ModalHeader("Open or create a new project"),
-    dbc.ModalBody(
-        dbc.Tabs(
-        [
-        dbc.Tab(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H4("Open", className="card-title", style={'width': '45%', 'float': 'left'}),
-                    html.H4("Or create from dataset", className="card-title", style={'width': '45%', 'float': 'right'}),
-                    open_form,
-                    create_form,
-                    html.Div(hidden=True,id='create-validator',**{'data-create-valid': False})
-                ]),
-            ),
-            label= "Open or Create Project"
+        dbc.ModalHeader("Open or create a new project"),
+        dbc.ModalBody(
+            dbc.Tabs([
+                dbc.Tab(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H4(
+                                "Open",
+                                className="card-title",
+                                style={'width': '45%', 'float': 'left'}),
+                            html.H4(
+                                "Or create from dataset",
+                                className="card-title",
+                                style={'width': '45%', 'float': 'right'}),
+                            open_form,
+                            create_form,
+                            html.Div(
+                                hidden=True,
+                                id='create-validator',
+                                **{'data-create-valid': False})
+                        ]),
+                    ),
+                    label="Open or Create Project"
+                ),
+                dbc.Tab(
+                    dbc.Card(
+                        dbc.CardBody([
+                            html.H4("Add new Dataset", className="card-title"),
+                            create_dataset_form,
+                            create_project_form,
+                            html.Div(
+                                hidden=True,
+                                id='add-validator',
+                                **{'data-upload-valid': False})
+                        ]),
+                    ),
+                    label="Add New Dataset"
+                )
+            ])
         ),
-        dbc.Tab(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H4("Add new Dataset", className="card-title"),
-                    create_dataset_form,
-                    create_project_form,
-                    html.Div(hidden=True,id='add-validator',**{'data-upload-valid': False})
-                    ]),
-            ),
-            label= "Add New Dataset"
+        dbc.ModalFooter(
+            dbc.Button(
+                "Close", id="close-upload-btn", n_clicks=0
+            )
         )
-        ])
-    ),
-    dbc.ModalFooter(
-        dbc.Button(
-            "Close", id="close-upload-btn", n_clicks=0
-        )
-    )
     ],
-    id="manage-datasets-modal",
-    size="xl",
-    is_open=True,
+        id="manage-datasets-modal",
+        size="xl",
+        is_open=True,
     )
     return modal
 
 
 def add_dataset_cb(
-    new_data, project_name_checked,
-    dataset_name, text_column, label_column, description, project_name,
-    current_dataset):
+        new_data, project_name_checked, dataset_name,
+        text_column, label_column, description,
+        project_name, current_dataset):
     """Callback for the add dataset button.
 
     The function assumes everything to be valid, since it can only be trigger if
@@ -268,14 +267,14 @@ def add_dataset_cb(
             'dataset_name': dataset_name,
             'project_name': project_name,
             'data': new_current_project.to_dict('records')
-            }
+        }
     else:
         return False, current_dataset
 
 
 def create_project_cb(
-    create_project_name_valid, create_proj_dd_selection,
-    create_project_name, current_dataset, label_column):
+        create_project_name_valid, create_proj_dd_selection,
+        create_project_name, current_dataset, label_column):
     """callback for create Project Button.
 
     Args:
@@ -290,21 +289,25 @@ def create_project_cb(
         be closed and the updated current dataset
     """
     if create_project_name_valid and create_proj_dd_selection:
-       new_current_project = datasets.create_project(create_proj_dd_selection, create_project_name, label_column)
-       return False, {
-           'dataset_name': create_proj_dd_selection,
-           'project_name': create_project_name,
-           'data':new_current_project.to_dict('records')
-           }
+        new_current_project = datasets.create_project(
+            create_proj_dd_selection,
+            create_project_name,
+            label_column
+        )
+        return False, {
+            'dataset_name': create_proj_dd_selection,
+            'project_name': create_project_name,
+            'data': new_current_project.to_dict('records')
+        }
     else:
         return True, current_dataset
 
+
 def open_project_cb(
-    open_project_dd_selection
-):
-    new_current_project, dataset_name =  datasets.load_project(open_project_dd_selection)
+        open_project_dd_selection):
+    new_current_project, dataset_name = datasets.load_project(open_project_dd_selection)
     return False, {
         'dataset_name': dataset_name,
         'project_name': open_project_dd_selection,
-        'data':new_current_project.to_dict('records')
-        }
+        'data': new_current_project.to_dict('records')
+    }

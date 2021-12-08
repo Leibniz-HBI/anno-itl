@@ -2,16 +2,13 @@
 giving suggestions for similar text units.
 """
 
-from os import terminal_size
 import re
-import json
 import pandas as pd
 import dash
 from dash import dash_table
 from dash import dcc
 from dash import html
-from dash.dependencies import Input, Output, State, MATCH, ALL
-from dash.html.Button import Button
+from dash.dependencies import Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 import datasets
 import table_sync
@@ -44,7 +41,10 @@ app.layout = html.Div([
                     filter_action="native",
                     columns=[
                         {'name': 'Argument', 'id': 'text unit'},
-                        {'name': 'Label', 'id': 'label', 'editable': True, 'presentation': 'dropdown'}
+                        {
+                            'name': 'Label', 'id': 'label',
+                            'editable': True, 'presentation': 'dropdown'
+                        }
                     ],
                     data=[],
                     style_header={
@@ -56,7 +56,8 @@ app.layout = html.Div([
                         'page_size': '50',
                     },
                     style_data_conditional=[
-                        {'if': {'column_id': 'text unit'},
+                        {
+                            'if': {'column_id': 'text unit'},
                             'textOverflow': 'ellipsis',
                             'maxWidth': 0,
                             'width': '90%',
@@ -77,13 +78,15 @@ app.layout = html.Div([
                     id="label-header",
                     children=[
                         dbc.Input(id='lbl-input', placeholder='Add Label..', type='text'),
-                        dbc.Button(id='submit-lbl-button', color='primary', n_clicks=0, children='Add')
+                        dbc.Button(
+                            id='submit-lbl-button',
+                            color='primary', n_clicks=0, children='Add')
                     ]),
                 html.Ul(
                     id='label_list',
                     children=[
                     ])
-                ]
+            ]
             ),
             html.Div(id='algo-box', children=[
                 html.Div('Similar Arguments', id="algo-box-header"),
@@ -91,7 +94,10 @@ app.layout = html.Div([
                     id='algo-table',
                     columns=[
                         {'name': 'Argument', 'id': 'text unit'},
-                        {'name': 'Label', 'id': 'label',  'editable':True, 'presentation': 'dropdown'}
+                        {
+                            'name': 'Label', 'id': 'label',
+                            'editable': True, 'presentation': 'dropdown'
+                        }
                     ],
                     data=[],
                     style_header={
@@ -103,11 +109,12 @@ app.layout = html.Div([
                         'page_size': '50',
                     },
                     style_data_conditional=[
-                        {'if': {'column_id': 'text unit'},
-                        'textOverflow': 'ellipsis',
-                        'maxWidth': 0,
-                        'width': '90%',
-                        'textAlign': 'left'
+                        {
+                            'if': {'column_id': 'text unit'},
+                            'textOverflow': 'ellipsis',
+                            'maxWidth': 0,
+                            'width': '90%',
+                            'textAlign': 'left'
                         }
                     ]
                 )
@@ -117,7 +124,6 @@ app.layout = html.Div([
         ]
     )
 ])
-
 
 
 @app.callback(
@@ -130,11 +136,12 @@ def update_dropdown_options(label_list, current_dataset):
 
     labels = [list_item['props']['children'][0] for list_item in label_list]
     dropdown = {
-    f'{current_dataset["project_name"]}_label': {
-        'options': [{'label': lbl, 'value': lbl} for lbl in labels]
-    }
+        f'{current_dataset["project_name"]}_label': {
+            'options': [{'label': lbl, 'value': lbl} for lbl in labels]
+        }
     }
     return dropdown, dropdown
+
 
 @app.callback(
     Output('label_list', 'children'),
@@ -186,7 +193,7 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
                 id={'type': 'label-item', 'index': index},
                 className="label-container") for index, lbl in enumerate(labels)]
     else:
-        button_id = int(re.findall('\d+', trigger)[0])
+        button_id = int(re.findall(r'\d+', trigger)[0])
         for child in children:
             if child['props']['children'][1]['props']['id']['index'] == button_id:
                 children.remove(child)
@@ -276,6 +283,7 @@ def handle_input_table_change(
         else:
             return details_children, arg_data, algo_data
 
+
 @app.callback(
     Output('dataset-name-invalid-message', 'children'),
     Output('ds-name-input', 'valid'),
@@ -336,7 +344,10 @@ def validate_dataset_upload(upload, filename):
     df = datasets.parse_contents(upload, filename)
     if df is not None:
         options = [{'label': key, 'value': key} for key in df.keys()]
-        label_options = [{'label': f'{key} ({df[key].nunique()} unique items)', 'value': key} for key in df.keys()]
+        label_options = [{
+            'label': f'{key} ({df[key].nunique()} unique items)',
+            'value': key}
+            for key in df.keys()]
         return 'success', 'Dataset valid', df.to_dict('records'), False, options, label_options
     else:
         return 'danger', 'File was not readable', {}, True, [], []
@@ -347,7 +358,7 @@ def validate_dataset_upload(upload, filename):
     Input('ds-project-label-checkbox', 'value'),
     Input('ds-project-label-selection-dd', 'options')
 )
-def change_add_label_selection_enabled_status(checked, options):
+def add_label_enabler(checked, options):
     if options and checked:
         return False
     else:
@@ -363,7 +374,6 @@ def get_label_options(dataset):
         raise dash.exceptions.PreventUpdate
 
     columns = datasets.get_dataset_labels(dataset)
-    options = [{'label': f'{key[0]} ({key[1]} unique items)', 'value': key} for key in columns]
     return [{'label': f'{key[0]} ({key[1]} unique items)', 'value': key[0]} for key in columns]
 
 
@@ -372,7 +382,7 @@ def get_label_options(dataset):
     Input('create-project-label-checkbox', 'value'),
     Input('create-project-label-selection-dd', 'options')
 )
-def change_add_label_selection_enabled_status(checked, options):
+def create_label_enabler(checked, options):
     if options and checked:
         return False
     else:
@@ -500,7 +510,7 @@ def finalize_data_dialogue(
         new_data, current_dataset,
         ds_name, ds_description, ds_text_unit_selection, ds_label_selection, label_checked,
         ds_project_name, ds_project_name_checked,
-        create_proj_dd_selection, create_project_name,create_project_name_valid,
+        create_proj_dd_selection, create_project_name, create_project_name_valid,
         create_label_checked, create_proj_label_selection,
         open_project_dd_selection):
     """Creates Dataset (and project, if checked) or closes dialogue.
@@ -529,7 +539,8 @@ def finalize_data_dialogue(
     elif trigger == 'create-validator':
         return open_modal.create_project_cb(
             create_project_name_valid, create_proj_dd_selection,
-            create_project_name, current_dataset, create_proj_label_selection if create_label_checked else False
+            create_project_name, current_dataset,
+            create_proj_label_selection if create_label_checked else False
         )
     elif trigger == 'open-project-btn':
         if open_project_dd_selection:
@@ -550,9 +561,10 @@ def refresh_datatable(current_dataset):
         f'Text data of {current_dataset["project_name"]} ',
         id="arg-list-header"
     )
-    columns=[
+    columns = [
         {'name': 'Argument', 'id': 'text unit'},
-        {'name': 'Label', 'id': f'{current_dataset["project_name"]}_label', 'editable': True, 'presentation': 'dropdown'}
+        {'name': 'Label', 'id': f'{current_dataset["project_name"]}_label',
+         'editable': True, 'presentation': 'dropdown'}
     ]
     table = dash_table.DataTable(
         id='arg-table',
@@ -568,16 +580,17 @@ def refresh_datatable(current_dataset):
             'page_size': '50',
         },
         style_data_conditional=[
-            {'if': {'column_id': 'text unit'},
+            {
+                'if': {'column_id': 'text unit'},
                 'textOverflow': 'ellipsis',
                 'maxWidth': 0,
                 'width': '90%',
                 'textAlign': 'left'
-                # 'cursor': 'pointer'
             }
         ]
     )
     return [header, table], columns
+
 
 @app.callback(
     Output('new-ds-proj-name-invalid-message', 'children'),

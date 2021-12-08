@@ -6,7 +6,7 @@ import base64
 import io
 import yaml
 import pandas as pd
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer
 from sentence_transformers.models import Normalize
 import numpy as np
 import faiss
@@ -88,7 +88,7 @@ def create_project(dataset_name, project_name, label_column=False):
     if label_column:
         dataset[f'{project_name}_label'] = dataset[label_column]
     else:
-         dataset[f'{project_name}_label'] = None
+        dataset[f'{project_name}_label'] = None
     dataset.to_csv(f'{DATA_PATH}/{dataset_name}.csv', index=False)
     project_dict = {
         project_name: {
@@ -99,7 +99,7 @@ def create_project(dataset_name, project_name, label_column=False):
     }
     with open(f'{DATA_PATH}/projects_meta.yaml', 'a') as f:
         f.write(yaml.dump(project_dict))
-    return dataset[["id", "text unit", f'{project_name}_label']]
+    return dataset[["id", text_column, f'{project_name}_label']]
 
 
 def load_project(project_name):
@@ -108,7 +108,6 @@ def load_project(project_name):
         dataset_name = existing_projects[project_name]["dataset"]
         dataset = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
         return dataset[["id", "text unit", f'{project_name}_label']], dataset_name
-
 
 
 def store_embeddings(embeddings, filename):
@@ -144,8 +143,8 @@ def search_faiss_with_string(text, index_name, k):
         search_index = faiss.read_index(f'{FAISS_PATH}/{index_name}.faiss')
     else:
         raise FileNotFoundError(f'no faiss index for name {index_name}')
-    _, I = search_index.search(model.encode([text]), k = k +1  )
-    return I.tolist()[0][1:]
+    _, index = search_index.search(model.encode([text]), k=k + 1)
+    return index.tolist()[0][1:]
 
 
 def parse_contents(contents, filename):
@@ -203,7 +202,7 @@ def load_meta_file(name):
             meta = yaml.safe_load(f)
         return meta
     else:
-         return {}
+        return {}
 
 
 def check_name_exists(name, dataset='True'):

@@ -87,10 +87,10 @@ def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell):
     arg_df = pd.DataFrame(arg_data)
     algo_df = pd.DataFrame(algo_data)
     if trigger == 'arg-table.data':
-        algo_df =  arg_df.iloc[algo_df['id']]
+        algo_df = arg_df.iloc[algo_df['id']]
     else:
         arg_df = arg_df.set_index('id')
-        algo_df =algo_df.set_index('id')
+        algo_df = algo_df.set_index('id')
         # update does not work with `None values`, therefore replace them before
         # updating and none them afterwards. Seems kinda hacky..
         algo_df.fillna('removed', inplace=True)
