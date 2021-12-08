@@ -26,7 +26,10 @@ app.layout = html.Div([
         id='app-header',
         children=[
             html.Div('Annotation tool with Human in the Loop', id="app-header-title"),
-            dbc.Button("Open or create project", color='primary', id='btn-new-data'),
+            html.Div([
+                dbc.Button("Open or create project", color='primary', id='btn-new-data'),
+                dbc.Button("Save!", color='danger', id='btn-save-data')
+            ], id='header-buttons')
         ]
     ),
     html.Div(
@@ -133,7 +136,8 @@ app.layout = html.Div([
     State('current_dataset', 'data'),
 )
 def update_dropdown_options(label_list, current_dataset):
-
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
     labels = [list_item['props']['children'][0] for list_item in label_list]
     dropdown = {
         f'{current_dataset["project_name"]}_label': {
@@ -162,22 +166,23 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if trigger in ['submit-lbl-button', 'lbl-input'] and label_input:
-        already_there = False
-        for label in children:
-            if label_input in label['props']['children']:
-                already_there = True
-        if not already_there:
-            new_cat = html.Li(
-                children=[
-                    label_input,
-                    html.Button(
-                        'remove',
-                        id={'type': 'label-remove-btn', 'index': len(children)})
-                ],
-                id={'type': 'label-item', 'index': len(children)},
-                className="label-container")
-            children.append(new_cat)
+    if trigger in ['submit-lbl-button', 'lbl-input']:
+        if label_input:
+            already_there = False
+            for label in children:
+                if label_input in label['props']['children']:
+                    already_there = True
+            if not already_there:
+                new_cat = html.Li(
+                    children=[
+                        label_input,
+                        html.Button(
+                            'remove',
+                            id={'type': 'label-remove-btn', 'index': len(children)})
+                    ],
+                    id={'type': 'label-item', 'index': len(children)},
+                    className="label-container")
+                children.append(new_cat)
     elif trigger == 'current_dataset':
         tmp_df = pd.DataFrame(current_dataset['data'])
         label_name = f'{current_dataset["project_name"]}_label'
