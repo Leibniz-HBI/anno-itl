@@ -228,3 +228,12 @@ def check_name_exists(name, dataset='True'):
             return False
     else:
         return False
+
+
+def update_project_columns(data, project_name, dataset_name):
+    new_df = pd.DataFrame(data)
+    old_df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
+    for column in new_df:
+        if column.startswith(project_name):
+            old_df[column] = new_df[column]
+    old_df.to_csv(f'{DATA_PATH}/{dataset_name}.csv', index=False)

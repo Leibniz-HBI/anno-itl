@@ -26,9 +26,10 @@ app.layout = html.Div([
         id='app-header',
         children=[
             html.Div('Annotation tool with Human in the Loop', id="app-header-title"),
+            html.Div(hidden=True, id='clean-bit', **{'data-saved': 0}),
             html.Div([
                 dbc.Button("Open or create project", color='primary', id='btn-new-data'),
-                dbc.Button("Save!", color='danger', id='btn-save-data')
+                dbc.Button("Save!", color='danger', id='btn-save-data', disabled=True)
             ], id='header-buttons')
         ]
     ),
@@ -68,7 +69,9 @@ app.layout = html.Div([
                             # 'cursor': 'pointer'
                         }
                     ]
-                )]
+                ),
+                html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0})
+            ]
             ),
             html.Div('Argument Details', id="argument-detail-box")
         ]
@@ -127,6 +130,39 @@ app.layout = html.Div([
         ]
     )
 ])
+
+
+@app.callback(
+    Output('btn-save-data', 'disabled'),
+    Input('dirty-bit', 'data-changed'),
+    Input('clean-bit', 'data-saved')
+)
+def enable_save_button(data_changed, data_saved):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if trigger == 'dirty-bit':
+        return False
+    else:
+        return True
+
+
+@app.callback(
+    Output('clean-bit', 'data-saved'),
+    Input('btn-save-data', 'n_clicks'),
+    State('arg-table', 'data'),
+    State('clean-bit', 'data-saved'),
+    State('current_dataset', 'data'),
+)
+def save_data(n_clicks, current_table_data, clean_bit, current_dataset):
+    if not dash.callback_context.triggered[0]['value']:
+        raise dash.exceptions.PreventUpdate
+    datasets.update_project_columns(
+        current_table_data,
+        current_dataset['project_name'],
+        current_dataset['dataset_name']
+    )
+    return clean_bit + 1
 
 
 @app.callback(
@@ -233,16 +269,18 @@ def load_data_diag(open_clicks, children):
     Output('argument-detail-box', 'children'),
     Output('arg-table', 'data'),
     Output('algo-table', 'data'),
+    Output('dirty-bit', 'data-changed'),
     Input('arg-table', 'active_cell'),
     Input('arg-table', 'dropdown'),
     Input('arg-table', 'data'),
     Input('algo-table', 'data'),
     State('current_dataset', 'data'),
     State('argument-detail-box', 'children'),
+    State('dirty-bit', 'data-changed'),
 )
 def handle_input_table_change(
         active_cell, dropdown, arg_data,
-        algo_data, current_dataset, details_children):
+        algo_data, current_dataset, details_children, n_data_changes):
     """handle changes to input table.
     There are a few scenarios how the argument details or the data for the algo
     table can change.
@@ -271,7 +309,7 @@ def handle_input_table_change(
             arg_data,
             current_dataset['dataset_name'],
             SIMILARITY_SEARCH_RESULTS)
-        return details_table, arg_data, algo_table_data
+        return details_table, arg_data, algo_table_data, n_data_changes
     # second case.
     elif trigger == 'arg-table.dropdown':
         new_arg_data, new_algo_data = table_sync.sync_labels(
@@ -280,13 +318,16 @@ def handle_input_table_change(
             algo_data,
             current_dataset['project_name']
         )
-        return details_children, new_arg_data, new_algo_data
+        return details_children, new_arg_data, new_algo_data, n_data_changes + 1
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
         if algo_data:
-            return table_sync.sync_dropdown_selection(arg_data, algo_data, trigger, active_cell)
+            return table_sync.sync_dropdown_selection(
+                arg_data, algo_data, trigger,
+                active_cell, n_data_changes
+            )
         else:
-            return details_children, arg_data, algo_data
+            return details_children, arg_data, algo_data, n_data_changes + 1
 
 
 @app.callback(
@@ -594,7 +635,9 @@ def refresh_datatable(current_dataset):
             }
         ]
     )
-    return [header, table], columns
+    # it aint a bit....
+    dirty_bit = html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0})
+    return [header, table, dirty_bit], columns
 
 
 @app.callback(

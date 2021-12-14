@@ -66,7 +66,7 @@ def sync_labels(dropdown, arg_data, algo_data, project_name):
     return arg_data, algo_data
 
 
-def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell):
+def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell, n_data_changes):
     """Syncs the selection of labels in both tables
 
     Based on the trigger, the values from the arg table are put into the algo
@@ -101,4 +101,4 @@ def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell):
         algo_df = algo_df.reset_index()
     sentence_data = arg_df.iloc[active_cell['row_id']]
     details_table = html_generators.create_details_table(sentence_data, header='argument details')
-    return details_table, arg_df.to_dict('records'), algo_df.to_dict('records')
+    return details_table, arg_df.to_dict('records'), algo_df.to_dict('records'), n_data_changes + 1
