@@ -607,6 +607,9 @@ def refresh_datatable(current_dataset):
         f'Text data of {current_dataset["project_name"]} ',
         id="arg-list-header"
     )
+    df = pd.DataFrame(current_dataset['data'])
+    label_name = f'{current_dataset["project_name"]}_label'
+    labels = [lbl for lbl in df[label_name].unique() if lbl]
     columns = [
         {'name': 'Argument', 'id': 'text unit'},
         {'name': 'Label', 'id': f'{current_dataset["project_name"]}_label',
@@ -617,6 +620,10 @@ def refresh_datatable(current_dataset):
         filter_action="native",
         columns=columns,
         data=current_dataset['data'],
+        dropdown={
+            f'{current_dataset["project_name"]}_label':
+            {'options': [{'label': lbl, 'value': lbl} for lbl in labels]}
+        },
         style_header={
             'text_Align': 'center',
         },
