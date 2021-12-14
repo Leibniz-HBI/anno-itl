@@ -597,7 +597,7 @@ def finalize_data_dialogue(
 
 @app.callback(
     Output('arg-list-box', 'children'),
-    Output('algo-table', 'columns'),
+    Output('algo-box', 'children'),
     Input('current_dataset', 'data'),
 )
 def refresh_datatable(current_dataset):
@@ -615,15 +615,16 @@ def refresh_datatable(current_dataset):
         {'name': 'Label', 'id': f'{current_dataset["project_name"]}_label',
          'editable': True, 'presentation': 'dropdown'}
     ]
+    dropdown = {
+        f'{current_dataset["project_name"]}_label':
+        {'options': [{'label': lbl, 'value': lbl} for lbl in labels]}
+    }
     table = dash_table.DataTable(
         id='arg-table',
         filter_action="native",
         columns=columns,
         data=current_dataset['data'],
-        dropdown={
-            f'{current_dataset["project_name"]}_label':
-            {'options': [{'label': lbl, 'value': lbl} for lbl in labels]}
-        },
+        dropdown=dropdown,
         style_header={
             'text_Align': 'center',
         },
@@ -644,7 +645,31 @@ def refresh_datatable(current_dataset):
     )
     # it aint a bit....
     dirty_bit = html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0})
-    return [header, table, dirty_bit], columns
+    algo_header = html.Div('Similar Arguments', id="algo-box-header")
+    algo_table = dash_table.DataTable(
+        id='algo-table',
+        columns=columns,
+        dropdown=dropdown,
+        data=[],
+        style_header={
+            'text_Align': 'center',
+        },
+        style_data={
+            'whiteSpace': 'normal',
+            'height': 'auto',
+            'page_size': '50',
+        },
+        style_data_conditional=[
+            {
+                'if': {'column_id': 'text unit'},
+                'textOverflow': 'ellipsis',
+                'maxWidth': 0,
+                'width': '90%',
+                'textAlign': 'left'
+            }
+        ]
+    )
+    return [header, table, dirty_bit], [algo_header, algo_table]
 
 
 @app.callback(
