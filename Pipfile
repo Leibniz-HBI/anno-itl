@@ -23,6 +23,7 @@ beautifulsoup4 = "*"
 nltk = ">=3.6.4"
 dash-bootstrap-components = "*"
 flair = "*"
+lxml = ">=4.6.5"
 
 [requires]
 python_version = "3.9"
