@@ -245,8 +245,9 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
     Output('app-header', 'children'),
     Input('btn-new-data', 'n_clicks'),
     State('app-header', 'children'),
+    State('current_dataset', 'data')
 )
-def load_data_diag(open_clicks, children):
+def load_data_diag(open_clicks, children, current_dataset):
     """adds and opens new dataset modal
 
     If there is an old modal, it is deleted.
@@ -261,7 +262,9 @@ def load_data_diag(open_clicks, children):
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     children = [child for child in children if child['props']['id'] != 'manage-datasets-modal']
-    children.append(open_modal.open_project_modal())
+    children.append(open_modal.open_project_modal(
+        current_dataset['project_name'] if current_dataset else None)
+    )
     return children
 
 

@@ -30,7 +30,7 @@ dataset_upload = html.Div([
     dbc.FormText("must be a .csv, .tsv or .xls file, containing a row  text unit")
 ])
 
-text_unit_dropdown = dcc.Dropdown(
+text_unit_dropdown = dbc.Select(
     id='ds-text-unit-dd',
     placeholder="Select a dataset column as text units (after upload)",
     disabled=True
@@ -104,7 +104,7 @@ check_label_input = dbc.Checkbox(
 )
 
 
-label_selection_dropdown = dcc.Dropdown(
+label_selection_dropdown = dbc.Select(
     id='ds-project-label-selection-dd',
     placeholder="Select a dataset column as label information (after upload)",
     disabled=True)
@@ -119,18 +119,20 @@ create_project_form = dbc.Form([
 )
 
 
-open_dropdown = dbc.DropdownMenu(
-    label="Open an existing project",
+def create_open_dropdown_options(existing_projects, current_project):
+    options = []
+    for project in existing_projects:
+        if project == current_project:
+            options.append({
+                'label': f'{project} (currently open)',
+                'value': project, 'disabled': True
+            })
+        else:
+            options.append({'label': project, 'value': project})
+    return options
 
-    children=[
-        dbc.DropdownMenuItem("Item 1"),
-        dbc.DropdownMenuItem("Item 2"),
-        dbc.DropdownMenuItem("Item 3"),
-    ],
-)
 
-
-def open_project_modal():
+def open_project_modal(current_project):
 
     existing_projects = datasets.load_meta_file('projects_meta.yaml')
     existing_datasets = datasets.load_meta_file('datasets_meta.yaml')
@@ -142,9 +144,9 @@ def open_project_modal():
          html.Br()],
         hidden=True if existing_projects else False
     )
-    open_dropdown = dcc.Dropdown(
+    open_dropdown = dbc.Select(
         id='open-project-dd',
-        options=[{'label': project, 'value': project} for project in existing_projects],
+        options=create_open_dropdown_options(existing_projects, current_project),
         placeholder="Select a project to open",
         disabled=not existing_projects
     )
@@ -163,7 +165,7 @@ def open_project_modal():
         html.Br()],
         hidden=True if existing_projects else False
     )
-    create_dropdown = dcc.Dropdown(
+    create_dropdown = dbc.Select(
         id='create-project-dd',
         options=[{'label': dataset, 'value': dataset} for dataset in existing_datasets],
         placeholder="Select a Dataset for project creation",
@@ -178,7 +180,7 @@ def open_project_modal():
         label_class_name='checkbox-form-label'
     )
 
-    create_label_selection_dropdown = dcc.Dropdown(
+    create_label_selection_dropdown = dbc.Select(
         id='create-project-label-selection-dd',
         placeholder="Select a dataset column as label information",
         disabled=True
