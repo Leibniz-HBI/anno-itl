@@ -135,9 +135,10 @@ app.layout = html.Div([
 @app.callback(
     Output('btn-save-data', 'disabled'),
     Input('dirty-bit', 'data-changed'),
-    Input('clean-bit', 'data-saved')
+    Input('clean-bit', 'data-saved'),
+    Input('current_dataset', 'data')
 )
-def enable_save_button(data_changed, data_saved):
+def enable_save_button(data_changed, data_saved, current_dataset):
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
