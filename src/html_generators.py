@@ -1,11 +1,7 @@
 """Here are all the generated html pieces that are needed.
 """
 
-from dash import dcc
 import dash.html as html
-from dash.html.Tr import Tr
-from dash.dependencies import Input, Output, State, MATCH, ALL
-import plotly.express as px
 
 
 def create_table_row(input_tuple):
@@ -19,12 +15,10 @@ def create_details_table(sentence_data, header='Details Box View'):
     """
     return html.Table(
         className='details-table',
-        children= [
+        children=[
             html.Thead(header),
             html.Tbody(
-                children= [create_table_row((k,v)) for k,v in  sentence_data.items()]
+                children=[create_table_row((k, v)) for k, v in sentence_data.items()]
             )
         ]
     )
-
-
