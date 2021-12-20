@@ -13,10 +13,6 @@ from dash import html
 import datasets
 import open_modal
 
-import cb_datatables
-import cb_open_modal
-
-
 
 @app.callback(
     Output('btn-save-data', 'disabled'),
