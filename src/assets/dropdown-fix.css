@@ -1,0 +1,8 @@
+.Select-menu-outer {
+    display : block !important;
+    }
+
+/* without this, the dropdown menues do not work, you can check
+https://community.plotly.com/t/resolved-dropdown-options-in-datatable-not-showing/20366/4
+if you're interested in (I wanted to write why but idk if that's actually
+described there.) how I found out.*/

@@ -8,7 +8,6 @@ from dash.dependencies import Input, Output, State
 from dash import dash_table
 import dash.html as html
 
-import html_generators
 import datasets
 # TODO: find a better place for these kind of settings.
 SIMILARITY_SEARCH_RESULTS = 10
@@ -94,13 +93,27 @@ def refresh_datatable(current_dataset):
 @app.callback(
     Output('arg-table', 'dropdown'),
     Output('algo-table', 'dropdown'),
-    Input('label_list', 'children'),
+    Input('label-list', 'children'),
     State('current_dataset', 'data'),
 )
 def update_dropdown_options(label_list, current_dataset):
+    """updates dropdown options for the datatables when the label list changes.
+    The first element of the label list ist the label list header. Therefore the
+    list comprehension `labels=...` starts at label_list index 1.
+
+    Args:
+        label_list ([type]): children from the label list
+        current_dataset ([type]): current dataset info and data
+
+    Returns:
+        updated dropdown menus for both data tables.
+    """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
-    labels = [list_item['props']['children'][0] for list_item in label_list]
+    # the props children stuff is getting the value from html.H6 element of the
+    # label card.
+    labels = [list_item['props']['children'][1]['props']['children']
+              for list_item in label_list[1:]]
     dropdown = {
         f'{current_dataset["project_name"]}_label': {
             'options': [{'label': lbl, 'value': lbl} for lbl in labels]
@@ -110,7 +123,6 @@ def update_dropdown_options(label_list, current_dataset):
 
 
 @app.callback(
-    Output('argument-detail-box', 'children'),
     Output('arg-table', 'data'),
     Output('algo-table', 'data'),
     Output('dirty-bit', 'data-changed'),
@@ -119,26 +131,24 @@ def update_dropdown_options(label_list, current_dataset):
     Input('arg-table', 'data'),
     Input('algo-table', 'data'),
     State('current_dataset', 'data'),
-    State('argument-detail-box', 'children'),
     State('dirty-bit', 'data-changed'),
 )
 def handle_input_table_change(
         active_cell, dropdown, arg_data,
-        algo_data, current_dataset, details_children, n_data_changes):
+        algo_data, current_dataset, n_data_changes):
     """handle changes to input table.
-    There are a few scenarios how the argument details or the data for the algo
-    table can change.
-    First, another item is clicked. This changes the output of the detail box as
-    well as the algorithm output. For the algorithm output, the similarity
-    search is conducted and the data of the most similar items is put into the algo-table.
+    There are a few scenarios how the data for the algo
+    table can change.First, another item is clicked. This changes the output of
+    the detail box as well as the algorithm output. For the algorithm output,
+    the similarity search is conducted and the data of the most similar items
+    is put into the algo-table.
     Second, a label is deleted and the dropdown options change. When this
     happens, the algo-table and the arg-table have to clear the dropdown value
     of all the items that have this label selected.
     Third, a dropdown item is changed in either datatable (algo or arg). If
     that's the case, the change must be reflected in the other table as well.
-    In this case, the details table should also be refreshed. It might be that
-    there's no data in the algo table. In that case, no syncronization has to be
-    done.
+    It might be that there's no data in the algo table. In that case, no
+    syncronization has to be done.
     Fourth Case is when the entire table has to be changed due to a file Upload
     or due to loading a new dataset
     In this case, the data of the algo table has to change and rest needs to be reset.
@@ -148,12 +158,12 @@ def handle_input_table_change(
     trigger = dash.callback_context.triggered[0]['prop_id']
     # first case.
     if trigger == 'arg-table.active_cell':
-        details_table, algo_table_data = active_cell_change(
+        algo_table_data = active_cell_change(
             active_cell,
             arg_data,
             current_dataset['dataset_name'],
             SIMILARITY_SEARCH_RESULTS)
-        return details_table, arg_data, algo_table_data, n_data_changes
+        return arg_data, algo_table_data, n_data_changes
     # second case.
     elif trigger == 'arg-table.dropdown':
         new_arg_data, new_algo_data = sync_labels(
@@ -162,7 +172,7 @@ def handle_input_table_change(
             algo_data,
             current_dataset['project_name']
         )
-        return details_children, new_arg_data, new_algo_data, n_data_changes + 1
+        return new_arg_data, new_algo_data, n_data_changes + 1
     # third case, arg-table data has changed.
     elif trigger in ['arg-table.data', 'algo-table.data']:
         if algo_data:
@@ -171,7 +181,34 @@ def handle_input_table_change(
                 active_cell, n_data_changes
             )
         else:
-            return details_children, arg_data, algo_data, n_data_changes + 1
+            return arg_data, algo_data, n_data_changes + 1
+
+
+def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RESULTS):
+    """Provides similarity search and info data on cell click.
+
+    When a text data from the arg-table is clicked, the similarity search is
+    conducted and the argument info views is updated with the new data.
+
+    Args:
+        active_cell: active cell object of the cell that was selected
+        arg_data: data from the arg-table
+        search_index: faiss index for similarity search
+        SIMILARITY_SEARCH_RESULTS: number of similarity search results
+
+    Returns:
+        The data for the similarity table
+    """
+    dff = pd.DataFrame(arg_data)
+    sentence_data = dff.iloc[active_cell['row_id']]
+    sentence = sentence_data['text unit']
+    similarity_indices = datasets.search_faiss_with_string(
+        sentence,
+        search_index,
+        SIMILARITY_SEARCH_RESULTS
+    )
+    similarity_table_data = dff.iloc[similarity_indices].to_dict('records')
+    return similarity_table_data
 
 
 def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell, n_data_changes):
@@ -181,8 +218,6 @@ def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell, n_data_ch
     table or vice versa. For the first case, a new slice of the arg table is
     created, for the second case, the values from the algo table are updated
     into the arg table.
-    The details table is also refreshed, so that label changes are reflected
-    immediately.
     Args:
         arg_data : data from arg-table
         algo_data: data from algo_data
@@ -207,9 +242,7 @@ def sync_dropdown_selection(arg_data, algo_data, trigger, active_cell, n_data_ch
         arg_df.replace({'removed': None}, regex=True, inplace=True)
         arg_df = arg_df.reset_index()
         algo_df = algo_df.reset_index()
-    sentence_data = arg_df.iloc[active_cell['row_id']]
-    details_table = html_generators.create_details_table(sentence_data, header='argument details')
-    return details_table, arg_df.to_dict('records'), algo_df.to_dict('records'), n_data_changes + 1
+    return arg_df.to_dict('records'), algo_df.to_dict('records'), n_data_changes + 1
 
 
 def sync_labels(dropdown, arg_data, algo_data, project_name):
@@ -235,32 +268,3 @@ def sync_labels(dropdown, arg_data, algo_data, project_name):
         if row[label_name] not in labels:
             algo_data[index][label_name] = None
     return arg_data, algo_data
-
-
-def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RESULTS):
-    """Provides similarity search and info data on cell click.
-
-    When a text data from the arg-table is clicked, the similarity search is
-    conducted and the argument info views is updated with the new data.
-
-    Args:
-        active_cell: active cell object of the cell that was selected
-        arg_data: data from the arg-table
-        search_index: faiss index for similarity search
-        SIMILARITY_SEARCH_RESULTS: number of similarity search results
-
-    Returns:
-        The dash html.components for the details table and the data for the
-        similarity table
-    """
-    dff = pd.DataFrame(arg_data)
-    sentence_data = dff.iloc[active_cell['row_id']]
-    sentence = sentence_data['text unit']
-    details_table = html_generators.create_details_table(sentence_data, header='argument details')
-    similarity_indices = datasets.search_faiss_with_string(
-        sentence,
-        search_index,
-        SIMILARITY_SEARCH_RESULTS
-    )
-    similarity_table_data = dff.iloc[similarity_indices].to_dict('records')
-    return details_table, similarity_table_data

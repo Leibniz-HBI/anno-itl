@@ -9,9 +9,11 @@ from app import app
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash import html
+import dash_bootstrap_components as dbc
 
 import datasets
 import open_modal
+from layout import label_list_header
 
 
 @app.callback(
@@ -49,15 +51,17 @@ def save_data(n_clicks, current_table_data, clean_bit, current_dataset):
 
 
 @app.callback(
-    Output('app-header', 'children'),
+    Output('modal-container', 'children'),
     Input('btn-new-data', 'n_clicks'),
-    State('app-header', 'children'),
     State('current_dataset', 'data')
 )
-def load_data_diag(open_clicks, children, current_dataset):
-    """adds and opens new dataset modal
+def load_data_diag(open_clicks, current_dataset):
+    """Opens new dataset modal.
 
-    If there is an old modal, it is deleted.
+    It opens inside a hidden div modal container. When the "open or create
+    project" button is pressed again, a new modal is created. This can then
+    easily populate the dropdown menues again, plus it has the advantage that
+    opening the modal can be done in a different output than closing.
 
     Args:
         open_click: input button clikcs
@@ -68,21 +72,34 @@ def load_data_diag(open_clicks, children, current_dataset):
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
-    children = [child for child in children if child['props']['id'] != 'manage-datasets-modal']
-    children.append(open_modal.open_project_modal(
+    return open_modal.open_project_modal(
         current_dataset['project_name'] if current_dataset else None)
+
+
+def create_label_card(label, index):
+    card = dbc.Card([
+        dbc.Button(
+            # TODO: find out why `p-0` still leaves top and bottom padding.
+            className="bi bi-x py-0 px-1 position-absolute top-0 end-0 border-0",
+            id={'type': 'label-remove-btn', 'index': index},
+            style={'color': 'white', 'height': '100%', 'background': 'red'},
+        ),
+        html.H6(label, className='card-title')],
+        class_name="py-1 px-3",
+        id={'type': 'label-card', 'index': index, 'label': label},
+        className="mb-0"
     )
-    return children
+    return card
 
 
 @app.callback(
-    Output('label_list', 'children'),
+    Output('label-list', 'children'),
     Input('submit-lbl-button', 'n_clicks'),
     Input("lbl-input", "n_submit"),
     Input({'type': 'label-remove-btn', 'index': ALL}, 'n_clicks'),
     Input('current_dataset', 'data'),
     State('lbl-input', 'value'),
-    State('label_list', 'children'),
+    State('label-list', 'children'),
 )
 def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, children):
     """Handle Label input.
@@ -90,44 +107,38 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
     that happens, a new label will be created if it doesn't exist yet.
     If the remove button of a label is presesd, the corresponding list
     element will be deleted.
+
+    When iterating over the children of the label-list, the first element is
+    omitted because it's the header. The header exists not only for aesthetics
+    (which, of course, are top notch!) but also because callbacks which have
+    label-list, children as an input are not triggered when no elements of
+    label-list are still printed to the screen. Therefore they don't trigger
+    when the label-list is in fact empty and thus not printed.
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    print(f'add label trigger is {trigger}')
     if trigger in ['submit-lbl-button', 'lbl-input']:
         if label_input:
             already_there = False
-            for label in children:
-                if label_input in label['props']['children']:
+            for label in children[1:]:
+                if label_input == label['props']['id']['label']:
                     already_there = True
             if not already_there:
-                new_cat = html.Li(
-                    children=[
-                        label_input,
-                        html.Button(
-                            'remove',
-                            id={'type': 'label-remove-btn', 'index': len(children)})
-                    ],
-                    id={'type': 'label-item', 'index': len(children)},
-                    className="label-container")
-                children.append(new_cat)
+                children.append(create_label_card(label_input, len(children)))
     elif trigger == 'current_dataset':
         tmp_df = pd.DataFrame(current_dataset['data'])
         label_name = f'{current_dataset["project_name"]}_label'
         if label_name in tmp_df:
             labels = [lbl for lbl in tmp_df[label_name].unique() if lbl]
-            children = [html.Li(
-                children=[
-                    lbl,
-                    html.Button(
-                        'remove',
-                        id={'type': 'label-remove-btn', 'index': index})
-                ],
-                id={'type': 'label-item', 'index': index},
-                className="label-container") for index, lbl in enumerate(labels)]
+            children = [label_list_header]
+            for index, lbl in enumerate(labels):
+                children.append(create_label_card(lbl, index))
     else:
         button_id = int(re.findall(r'\d+', trigger)[0])
-        for child in children:
-            if child['props']['children'][1]['props']['id']['index'] == button_id:
+        # don't iterate over header
+        for child in children[1:]:
+            if child['props']['id']['index'] == button_id:
                 children.remove(child)
     return children
