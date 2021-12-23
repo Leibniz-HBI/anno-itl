@@ -15,6 +15,8 @@ import datasets
     Input('ds-name-input', 'value')
 )
 def validate_dataset_name_creation(name):
+    """checks whether the name for a dataset is valid and not taken"""
+
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(name) < 4:
@@ -37,6 +39,8 @@ def validate_dataset_name_creation(name):
     Input('ds-description-input', 'value')
 )
 def validate_dataset_desc_creation(description):
+    """checks whether the description for a dataset is valid"""
+
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(description) < 10:
@@ -60,6 +64,8 @@ def validate_dataset_desc_creation(description):
     State('dataset-file-input', 'filename'),
 )
 def validate_dataset_upload(upload, filename):
+    """checks whether the uploaded file is valid"""
+
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     valid_file_endings = ['.xls', '.csv', '.ctv']
@@ -96,6 +102,8 @@ def validate_add_dataset(
         project_name_checked, project_name_valid,
         text_unit_selection, proj_label_selection, label_checked):
     if not dash.callback_context.triggered[0]['value']:
+        """validates the input for adding a new dataset and creates the error
+        message when something is missing."""
         raise dash.exceptions.PreventUpdate
     validators = [name_valid, desc_valid, new_data, text_unit_selection]
     invalid_item_names = ['name', 'description', 'uploaded data', 'text column selection']
@@ -126,6 +134,8 @@ def validate_add_dataset(
 
 )
 def validate_create_project(n_clicks, name_valid, label_checked, label_selection, proj_selection):
+    """validates all inputs for the creation of a new project and displays error
+    message if something is missing or not valid."""
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     validators = [name_valid, proj_selection]
@@ -149,6 +159,7 @@ def validate_create_project(n_clicks, name_valid, label_checked, label_selection
     Input('create-proj-name', 'value')
 )
 def validate_create_project_name(name):
+    """checks whether a project name for a new project is valid and not taken"""
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(name) < 4:
@@ -171,6 +182,7 @@ def validate_create_project_name(name):
     Input('new-ds-proj-name', 'value')
 )
 def validate_ds_project_name(name):
+    """checks, whether a project name from a new dataset is valid and not taken"""
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     if len(name) < 4:
@@ -191,6 +203,7 @@ def validate_ds_project_name(name):
     Input('create-project-dd', 'value')
 )
 def get_label_options(dataset):
+    """populates dropdown for labels to pick from dataset as labels for new project"""
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
 
@@ -204,6 +217,7 @@ def get_label_options(dataset):
     Input('ds-project-label-selection-dd', 'options')
 )
 def add_label_enabler(checked, options):
+    """enables label selection, if the checkbox is checked and a dataset was uploaded"""
     if options and checked:
         return False
     else:
@@ -216,6 +230,8 @@ def add_label_enabler(checked, options):
     Input('create-project-label-selection-dd', 'options')
 )
 def create_label_enabler(checked, options):
+    """enables label selection, if checkbox is checked and a data was chosen for
+    project creation"""
     if options and checked:
         return False
     else:

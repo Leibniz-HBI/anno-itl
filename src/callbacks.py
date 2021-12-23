@@ -23,6 +23,11 @@ from layout import label_list_header
     Input('current_dataset', 'data')
 )
 def enable_save_button(data_changed, data_saved, current_dataset):
+    """Enables/disables the save button.
+
+    The button only needs to be enabled if the dirty bit is changed. If a new
+    dataset is loaded, or changes are saved, the button is disabled.
+    """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
@@ -40,6 +45,10 @@ def enable_save_button(data_changed, data_saved, current_dataset):
     State('current_dataset', 'data'),
 )
 def save_data(n_clicks, current_table_data, clean_bit, current_dataset):
+    """Saves the changes to the project.
+
+    Afterwards the clean bit is increased to signal that the data was stored.
+    """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     datasets.update_project_columns(
@@ -77,9 +86,22 @@ def load_data_diag(open_clicks, current_dataset):
 
 
 def create_label_card(label, index):
+    """Creates the label card for a label.
+    The index is important for pattern matching callbacks. It is not only put on
+    the button but also on the card itselve, so that check for the index is not
+    so long. (so you can use ['props']['id']['index'] instead of going down to
+    the button.)
+    The label is part of the `id` dict for a similar reason
+
+    Args:
+        label: label name
+        index: position of the card in the list of cards.
+
+    Returns:
+        [type]: dbc.Card with the stuff needed.
+    """
     card = dbc.Card([
         dbc.Button(
-            # TODO: find out why `p-0` still leaves top and bottom padding.
             className="bi bi-x py-0 px-1 position-absolute top-0 end-0 border-0",
             id={'type': 'label-remove-btn', 'index': index},
             style={'color': 'white', 'height': '100%', 'background': 'red'},

@@ -19,6 +19,21 @@ SIMILARITY_SEARCH_RESULTS = 10
     Input('current_dataset', 'data'),
 )
 def refresh_datatable(current_dataset):
+    """Create Datatables after load.
+
+    A change of the current_dataset means, that the user has loaded another
+    project. If that happens, it's easiest to just create new Datatables
+    altogether, due to the fact that column ids have to change (underlying
+    data has different column names!).
+
+
+    Args:
+        current_dataset: the new current_datasets dictionary
+
+    Returns:
+       new arguments table and a new, blank algorithm table. It's still
+       recreated, so that it has the correct column ids
+    """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     header = html.Div(

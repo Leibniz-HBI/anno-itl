@@ -2,6 +2,15 @@
 and grids. Paddings and margins are set with class name attributes e.g. pt-1 for
 1 sized padding at the top of an element. For more info, check out
 (bootstrap)[https://getbootstrap.com/]
+
+The Layout consists mainly of two Rows (in a container).
+The first row is the header and the second row is the content.
+
+The header has two columns, one for the buttons/menu and one for the title
+The content has three columns:
+1. the labels
+2. the text data. (consisting of two rows, one for text data, one for algorithm output)
+3. the third that, uhm, I like. (yes, yes, it will go if I don't find use.)
 """
 
 from dash import dash_table
