@@ -140,7 +140,6 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    print(f'add label trigger is {trigger}')
     if trigger in ['submit-lbl-button', 'lbl-input']:
         if label_input:
             already_there = False
