@@ -27,6 +27,7 @@ ipython = ">=7.31.1"
 twisted = ">=22.4.0rc1"
 Pillow = ">=9.0.1"
 scrapy = ">=2.6.0"
+celery = {extras = ["redis"], version = "*"}
 
 [requires]
 python_version = "3.9"
