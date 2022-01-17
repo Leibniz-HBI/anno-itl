@@ -16,8 +16,26 @@ To get an overview of the work in this repo, check out the
 [issues][issues], as well as the closed
 [pull requests][PRs] where summaries of new features are described.
 
+## How to run?
 
-## Using
+The code is currently developed on Python 3.9.9, so install that if possible.
+Create a virtual environment with
+[Pipenv](https://pipenv-fork.readthedocs.io/en/latest/basics.html)
+`pipenv install` should install everything you'll need.
+
+In order to run the long callbacks you need to have a redis server and a celery
+worker running:
+
+`docker run -p 6379:6379 redis` sets up a docker container for the redis server.
+
+`celery -A app.celery_app worker --loglevel=INFO` sets up the celery worker.
+**NOTE:** You have to run this command from the `src` folder!
+
+This will become more convenient at some point, but for now, it has to be started manually.
+
+
+
+## Packages used in the application
 - [sentence bert](https://www.sbert.net/index.html) for sentence embeddings
 - [dash](https://dash.plotly.com/) for the web interface for the user
 - [dash bootstrap components][dbc] for the layout and lots of styling of the web
@@ -31,3 +49,6 @@ Feel free to open an issue, I will answer in due time.
 [issues]: https://github.com/Leibniz-HBI/anno-itl/issues
 [PRs]: https://github.com/Leibniz-HBI/anno-itl/pulls?q=is%3Apr+is%3Aclosed
 [dbc]: https://dash-bootstrap-components.opensource.faculty.ai/
+
+
+
