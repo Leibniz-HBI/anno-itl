@@ -61,26 +61,42 @@ def validate_dataset_desc_creation(description):
     Output('ds-text-unit-dd', 'options'),
     Output('ds-project-label-selection-dd', 'options'),
     Input('dataset-file-input', 'contents'),
+    Input('manage-datasets-modal', 'is_open'),
     State('dataset-file-input', 'filename'),
 )
-def validate_dataset_upload(upload, filename):
-    """checks whether the uploaded file is valid"""
+def manage_dataset_upload(upload, modal_open, filename):
+    """Handles uploaded data for dataset creation.
+
+    If a file was uploaded, the function checks whether the upload file is
+    valid.
+
+    The second input is the modal itself. If the modal closes, the uploaded data
+    is delete from new data, as it is not needed anymore (dataset creation
+    either finished or was canceled).
+    """
 
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
-    valid_file_endings = ['.xls', '.csv', '.ctv']
-    if not filename[-4:] in valid_file_endings:
-        return 'danger', 'Not a valid File type', {}, True, [], []
-    df = datasets.parse_contents(upload, filename)
-    if df is not None:
-        options = [{'label': key, 'value': key} for key in df.keys()]
-        label_options = [{
-            'label': f'{key} ({df[key].nunique()} unique items)',
-            'value': key}
-            for key in df.keys()]
-        return 'success', 'Dataset valid', df.to_dict('records'), False, options, label_options
+    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
+    if trigger == 'dataset-file-input':
+        valid_file_endings = ['.xls', '.csv', '.ctv']
+        if not filename[-4:] in valid_file_endings:
+            return 'danger', 'Not a valid File type', {}, True, [], []
+        df = datasets.parse_contents(upload, filename)
+        if df is not None:
+            options = [{'label': key, 'value': key} for key in df.keys()]
+            label_options = [{
+                'label': f'{key} ({df[key].nunique()} unique items)',
+                'value': key}
+                for key in df.keys()]
+            return 'success', 'Dataset valid', df.to_dict('records'), False, options, label_options
+        else:
+            return 'danger', 'File was not readable', {}, True, [], []
     else:
-        return 'danger', 'File was not readable', {}, True, [], []
+        if not modal_open:
+            return 'sucess', 'not Displayed', {}, True, [], []
+        else:
+            raise dash.exceptions.PreventUpdate
 
 
 @app.callback(
@@ -101,9 +117,10 @@ def validate_add_dataset(
         n_clicks, name_valid, desc_valid, new_data,
         project_name_checked, project_name_valid,
         text_unit_selection, proj_label_selection, label_checked):
+    """validates the input for adding a new dataset and creates the error
+    message when something is missing."""
+
     if not dash.callback_context.triggered[0]['value']:
-        """validates the input for adding a new dataset and creates the error
-        message when something is missing."""
         raise dash.exceptions.PreventUpdate
     validators = [name_valid, desc_valid, new_data, text_unit_selection]
     invalid_item_names = ['name', 'description', 'uploaded data', 'text column selection']
@@ -403,3 +420,27 @@ def add_dataset_cb(
         }
     else:
         return False, current_dataset
+
+
+@app.long_callback(
+    outputs=Output('index-created', 'data-index-created'),
+    inputs=Input('add-validator', 'data-upload-valid'),
+    states=[
+        State('new_data', 'data'),
+        State('index-created', 'data-index-created'),
+        State('ds-name-input', 'value'),
+        State('ds-text-unit-dd', 'value'),
+    ],
+    running=[
+        (Output('algo-box-info', 'children'), 'creating index!', '')
+    ],
+    prevent_initial_call=True
+)
+def faiss_index_from_upload(valid, uploaded_data, index_created, dataset_name, text_column):
+    print('longing the cb')
+    if valid:
+        # TODO: Here as well, some error handling if the index creation doesn't work
+        datasets.create_faiss_index(uploaded_data, dataset_name, text_column)
+        return index_created + 1
+    else:
+        raise dash.exceptions.PreventUpdate
