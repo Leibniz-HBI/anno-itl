@@ -9,16 +9,16 @@ from dash import dash_table
 import dash.html as html
 
 import datasets
+import data_layout
 # TODO: find a better place for these kind of settings.
 SIMILARITY_SEARCH_RESULTS = 10
 
 
 @app.callback(
     Output('arg-list-box', 'children'),
-    Output('algo-box', 'children'),
     Input('current_dataset', 'data'),
 )
-def refresh_datatable(current_dataset):
+def fill_arg_list_box(current_dataset):
     """Create Datatables after load.
 
     A change of the current_dataset means, that the user has loaded another
@@ -40,7 +40,7 @@ def refresh_datatable(current_dataset):
         f'Text data of {current_dataset["project_name"]} ',
         id="arg-list-header"
     )
-    df = pd.DataFrame(current_dataset['data'])
+    df = datasets.fetch_data_slice(current_dataset['project_name'])
     label_name = f'{current_dataset["project_name"]}_label'
     labels = [lbl for lbl in df[label_name].unique() if lbl]
     columns = [
