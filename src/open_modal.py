@@ -27,7 +27,7 @@ dataset_upload = html.Div([
                    ),
         id='dataset-file-input',
     ),
-    dbc.FormText("must be a .csv, .tsv or .xls file, containing a row  text unit")
+    dbc.FormText("must be a .csv, .tsv or .xls file")
 ])
 
 text_unit_dropdown = dbc.Select(

@@ -42,9 +42,10 @@ def enable_save_button(data_changed, data_saved, current_dataset):
     Input('btn-save-data', 'n_clicks'),
     State('arg-table', 'data'),
     State('clean-bit', 'data-saved'),
+    State('label-list', 'children'),
     State('current_dataset', 'data'),
 )
-def save_data(n_clicks, current_table_data, clean_bit, current_dataset):
+def save_data(n_clicks, current_table_data, clean_bit, label_list, current_dataset):
     """Saves the changes to the project.
 
     Afterwards the clean bit is increased to signal that the data was stored.
@@ -56,6 +57,8 @@ def save_data(n_clicks, current_table_data, clean_bit, current_dataset):
         current_dataset['project_name'],
         current_dataset['dataset_name']
     )
+    labels =[label['props']['id']['label'] for label in label_list[1:]]
+    datasets.save_labels(current_dataset['project_name'], labels)
     return clean_bit + 1
 
 
@@ -149,13 +152,10 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
             if not already_there:
                 children.append(create_label_card(label_input, len(children)))
     elif trigger == 'current_dataset':
-        tmp_df = pd.DataFrame(current_dataset['data'])
-        label_name = f'{current_dataset["project_name"]}_label'
-        if label_name in tmp_df:
-            labels = [lbl for lbl in tmp_df[label_name].unique() if lbl]
-            children = [label_list_header]
-            for index, lbl in enumerate(labels):
-                children.append(create_label_card(lbl, index))
+        children = [label_list_header]
+        labels = datasets.load_labels(current_dataset['project_name'])
+        for index, lbl in enumerate(labels):
+            children.append(create_label_card(lbl, index))
     else:
         button_id = int(re.findall(r'\d+', trigger)[0])
         # don't iterate over header

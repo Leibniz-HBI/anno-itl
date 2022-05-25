@@ -44,7 +44,7 @@ def refresh_datatable(current_dataset):
     label_name = f'{current_dataset["project_name"]}_label'
     labels = [lbl for lbl in df[label_name].unique() if lbl]
     columns = [
-        {'name': 'Argument', 'id': 'text unit'},
+        {'name': 'Argument', 'id': current_dataset['text_column']},
         {'name': 'Label', 'id': f'{current_dataset["project_name"]}_label',
          'editable': True, 'presentation': 'dropdown'}
     ]
@@ -68,7 +68,7 @@ def refresh_datatable(current_dataset):
         },
         style_data_conditional=[
             {
-                'if': {'column_id': 'text unit'},
+                'if': {'column_id': current_dataset['text_column']},
                 'textOverflow': 'ellipsis',
                 'maxWidth': 0,
                 'width': '90%',
@@ -94,7 +94,7 @@ def refresh_datatable(current_dataset):
         },
         style_data_conditional=[
             {
-                'if': {'column_id': 'text unit'},
+                'if': {'column_id': current_dataset['text_column']},
                 'textOverflow': 'ellipsis',
                 'maxWidth': 0,
                 'width': '90%',
@@ -176,6 +176,7 @@ def handle_input_table_change(
         algo_table_data = active_cell_change(
             active_cell,
             arg_data,
+            current_dataset['text_column'],
             current_dataset['dataset_name'],
             SIMILARITY_SEARCH_RESULTS)
         return arg_data, algo_table_data, n_data_changes
@@ -199,7 +200,7 @@ def handle_input_table_change(
             return arg_data, algo_data, n_data_changes + 1
 
 
-def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RESULTS):
+def active_cell_change(active_cell, arg_data, text_column, search_index, SIMILARITY_SEARCH_RESULTS):
     """Provides similarity search and info data on cell click.
 
     When a text data from the arg-table is clicked, the similarity search is
@@ -216,7 +217,7 @@ def active_cell_change(active_cell, arg_data, search_index, SIMILARITY_SEARCH_RE
     """
     dff = pd.DataFrame(arg_data)
     sentence_data = dff.iloc[active_cell['row_id']]
-    sentence = sentence_data['text unit']
+    sentence = sentence_data[text_column]
     similarity_indices = datasets.search_faiss_with_string(
         sentence,
         search_index,

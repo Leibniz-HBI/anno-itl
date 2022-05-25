@@ -104,10 +104,12 @@ def create_project(dataset_name, project_name, label_column=False):
 
 def load_project(project_name):
     existing_projects = load_meta_file('projects_meta.yaml')
+    dataset_meta = load_meta_file('datasets_meta.yaml')
     if project_name in existing_projects.keys():
         dataset_name = existing_projects[project_name]["dataset"]
+        text_column = dataset_meta[dataset_name]['text column']
         dataset = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
-        return dataset[["id", "text unit", f'{project_name}_label']], dataset_name
+        return dataset[["id", text_column, f'{project_name}_label']], dataset_name, text_column
 
 
 def store_embeddings(embeddings, filename):
@@ -237,3 +239,21 @@ def update_project_columns(data, project_name, dataset_name):
         if column.startswith(project_name):
             old_df[column] = new_df[column]
     old_df.to_csv(f'{DATA_PATH}/{dataset_name}.csv', index=False)
+
+
+def save_labels(project_name, labels):
+    with open(f'{DATA_PATH}/{project_name}_labels.txt', 'w') as f:
+        for label in labels:
+            f.write(label + '\n')
+
+
+def load_labels(project_name):
+    label_file = f'{DATA_PATH}/{project_name}_labels.txt'
+    if os.path.isfile(label_file):
+        with open(label_file, 'r') as f:
+            labels = [line.rstrip() for line in f]
+    else:
+        labels = []
+    return labels
+
+

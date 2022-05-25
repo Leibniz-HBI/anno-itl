@@ -373,10 +373,11 @@ def open_project_cb(open_project_dd_selection):
         The info about whether the Modal should
         be closed and the updated current dataset
     """
-    new_current_project, dataset_name = datasets.load_project(open_project_dd_selection)
+    new_current_project, dataset_name, text_column = datasets.load_project(open_project_dd_selection)
     return False, {
         'dataset_name': dataset_name,
         'project_name': open_project_dd_selection,
+        'text_column': text_column,
         'data': new_current_project.to_dict('records')
     }
 
