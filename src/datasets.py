@@ -99,7 +99,7 @@ def create_project(dataset_name, project_name, label_column=False):
     }
     with open(f'{DATA_PATH}/projects_meta.yaml', 'a') as f:
         f.write(yaml.dump(project_dict))
-    return dataset[["id", text_column, f'{project_name}_label']]
+    return dataset[["id", text_column, f'{project_name}_label']], text_column
 
 
 def load_project(project_name):

@@ -347,7 +347,7 @@ def create_project_cb(
         be closed and the updated current dataset
     """
     if create_project_name_valid and create_proj_dd_selection:
-        new_current_project = datasets.create_project(
+        new_current_project, text_column = datasets.create_project(
             create_proj_dd_selection,
             create_project_name,
             label_column
@@ -355,6 +355,7 @@ def create_project_cb(
         return False, {
             'dataset_name': create_proj_dd_selection,
             'project_name': create_project_name,
+            'text_column': text_column,
             'data': new_current_project.to_dict('records')
         }
     else:
@@ -393,10 +394,11 @@ def add_dataset_cb(
     """
     datasets.create_dataset(new_data, dataset_name, description, text_column)
     if project_name_checked:
-        new_current_project = datasets.create_project(dataset_name, project_name, label_column)
+        new_current_project, text_column = datasets.create_project(dataset_name, project_name, label_column)
         return False, {
             'dataset_name': dataset_name,
             'project_name': project_name,
+            'text_column': text_column,
             'data': new_current_project.to_dict('records')
         }
     else:
