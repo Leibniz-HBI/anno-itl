@@ -55,15 +55,6 @@ def create_dataset(data, name, description, text_column):
     if 'id' not in pd_data:
         pd_data.insert(0, 'id', pd_data.index)
     add_ds_metadata(pd_data, name, description, text_column)
-    search_index = None
-    if os.path.isfile(f'{FAISS_PATH}/{name}.faiss'):
-        search_index = faiss.read_index(f'{FAISS_PATH}/{name}.faiss')
-    elif os.path.isfile(f'{EMBEDDINGS_PATH}/{name}.npy'):
-        sentence_embeddings = np.load(f'{EMBEDDINGS_PATH}/{name}.npy')
-    else:
-        sentence_embeddings = model.encode(pd_data[text_column], convert_to_numpy=True)
-    if not search_index:
-        search_index = create_faiss_index(sentence_embeddings, name)
     pd_data.to_csv(f'{DATA_PATH}/{name}.csv', index=False)
     return True
 
@@ -99,7 +90,7 @@ def create_project(dataset_name, project_name, label_column=False):
     }
     with open(f'{DATA_PATH}/projects_meta.yaml', 'a') as f:
         f.write(yaml.dump(project_dict))
-    return dataset[["id", text_column, f'{project_name}_label']], text_column
+    return dataset[["id", text_column, f'{project_name}_label']]
 
 
 def load_project(project_name):
@@ -112,6 +103,11 @@ def load_project(project_name):
         return dataset[["id", text_column, f'{project_name}_label']], dataset_name, text_column
 
 
+def fetch_data_slice(project_name, size=10, start=0):
+    df, _, text_column = load_project(project_name)
+    return df.iloc[start:start + size].to_dict('records'), text_column
+
+
 def store_embeddings(embeddings, filename):
     """Stores embeddings on disk.
     If these are corespondend to a data set in the data sets folder, give it the
@@ -120,7 +116,7 @@ def store_embeddings(embeddings, filename):
     np.save(f'{EMBEDDINGS_PATH}/{filename}.npy', embeddings)
 
 
-def create_faiss_index(sentence_embeddings, name):
+def create_faiss_index(data, name, text_column):
     """creates and stores faiss index from sentence embeddings.
     The normalization is done because it was recommended in the docs when I
     first used the package (edit: and it still is, on another site in the docs).
@@ -131,10 +127,18 @@ def create_faiss_index(sentence_embeddings, name):
     Returns:
         The index.
     """
-    index = faiss.IndexFlatIP(768)
-    index.add(sentence_embeddings)
-    faiss.write_index(index, f'{FAISS_PATH}/{name}.faiss')
-    return index
+    pd_data = pd.DataFrame(data)
+    # TODO: Error handling for when the index already exists or can't be created!
+    if os.path.isfile(f'{FAISS_PATH}/{name}.faiss'):
+        return True
+    elif os.path.isfile(f'{EMBEDDINGS_PATH}/{name}.npy'):
+        sentence_embeddings = np.load(f'{EMBEDDINGS_PATH}/{name}.npy')
+    else:
+        sentence_embeddings = model.encode(pd_data[text_column], convert_to_numpy=True)
+        index = faiss.IndexFlatIP(768)
+        index.add(sentence_embeddings)
+        faiss.write_index(index, f'{FAISS_PATH}/{name}.faiss')
+    return True
 
 
 def search_faiss_with_string(text, index_name, k):

@@ -9,20 +9,21 @@ from app import app
 import dash
 from dash.dependencies import Input, Output, State, ALL
 from dash import html
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
-
 import datasets
 import open_modal
-from layout import label_list_header
+from layout import label_list_header, label_add_components
 
 
 @app.callback(
     Output('btn-save-data', 'disabled'),
     Input('dirty-bit', 'data-changed'),
+    Input('dirty-bit', 'data-labelchanged'),
     Input('clean-bit', 'data-saved'),
-    Input('current_dataset', 'data')
+    Input('current_dataset', 'data'),
 )
-def enable_save_button(data_changed, data_saved, current_dataset):
+def enable_save_button(data_changed, label_changed, data_saved, current_dataset):
     """Enables/disables the save button.
 
     The button only needs to be enabled if the dirty bit is changed. If a new
@@ -40,24 +41,24 @@ def enable_save_button(data_changed, data_saved, current_dataset):
 @app.callback(
     Output('clean-bit', 'data-saved'),
     Input('btn-save-data', 'n_clicks'),
-    State('arg-table', 'data'),
+    State('text-unit-view', 'children'),
     State('clean-bit', 'data-saved'),
     State('label-list', 'children'),
     State('current_dataset', 'data'),
 )
-def save_data(n_clicks, current_table_data, clean_bit, label_list, current_dataset):
+def save_data(n_clicks, current_loaded_text, clean_bit, label_list, current_dataset):
     """Saves the changes to the project.
 
     Afterwards the clean bit is increased to signal that the data was stored.
     """
     if not dash.callback_context.triggered[0]['value']:
         raise dash.exceptions.PreventUpdate
-    datasets.update_project_columns(
-        current_table_data,
-        current_dataset['project_name'],
-        current_dataset['dataset_name']
-    )
-    labels =[label['props']['id']['label'] for label in label_list[1:]]
+    # datasets.update_project_columns(
+    #    current_table_data,
+    #   current_dataset['project_name'],
+    #     current_dataset['dataset_name']
+    # )
+    labels = [label['props']['id']['label'] for label in label_list[1:]]
     datasets.save_labels(current_dataset['project_name'], labels)
     return clean_bit + 1
 
@@ -110,23 +111,25 @@ def create_label_card(label, index):
             style={'color': 'white', 'height': '100%', 'background': 'red'},
         ),
         html.H6(label, className='card-title')],
-        class_name="py-1 px-3",
+        class_name="py-1 px-3 mb-0 shadow",
         id={'type': 'label-card', 'index': index, 'label': label},
-        className="mb-0"
     )
     return card
 
 
 @app.callback(
     Output('label-list', 'children'),
+    Output('label-buttons', 'hidden'),
+    Output('dirty-bit', 'data-labelchanged'),
     Input('submit-lbl-button', 'n_clicks'),
     Input("lbl-input", "n_submit"),
     Input({'type': 'label-remove-btn', 'index': ALL}, 'n_clicks'),
     Input('current_dataset', 'data'),
     State('lbl-input', 'value'),
     State('label-list', 'children'),
+    State('dirty-bit', 'data-labelchanged'),
 )
-def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, children):
+def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, children, dirty_bit):
     """Handle Label input.
     Data from the input box can be submitted with enter and button click. If
     that happens, a new label will be created if it doesn't exist yet.
@@ -149,17 +152,20 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
             for label in children[1:]:
                 if label_input == label['props']['id']['label']:
                     already_there = True
-            if not already_there:
+            if already_there:
+                raise PreventUpdate
+            else:
                 children.append(create_label_card(label_input, len(children)))
     elif trigger == 'current_dataset':
         children = [label_list_header]
         labels = datasets.load_labels(current_dataset['project_name'])
         for index, lbl in enumerate(labels):
             children.append(create_label_card(lbl, index))
+        return children, False, dirty_bit
     else:
         button_id = int(re.findall(r'\d+', trigger)[0])
         # don't iterate over header
         for child in children[1:]:
             if child['props']['id']['index'] == button_id:
                 children.remove(child)
-    return children
+    return children, False, dirty_bit + 1

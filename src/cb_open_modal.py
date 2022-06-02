@@ -301,7 +301,8 @@ def check_project_creation_input(checked):
     State('create-project-label-checkbox', 'value'),
     State('create-project-label-selection-dd', 'value'),
 
-    State('open-project-dd', 'value')
+    State('open-project-dd', 'value'),
+    prevent_initial_call=True
 )
 def finalize_data_dialogue(
         add_valid, create_valid, open_button, close_button,
@@ -323,8 +324,6 @@ def finalize_data_dialogue(
     3. The Open Project for (open-project-btn) for opening en existing project.
 
     """
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
     if trigger == 'close-upload-btn':
         return False, current_dataset
@@ -364,7 +363,7 @@ def create_project_cb(
         be closed and the updated current dataset
     """
     if create_project_name_valid and create_proj_dd_selection:
-        new_current_project, text_column = datasets.create_project(
+        new_current_project = datasets.create_project(
             create_proj_dd_selection,
             create_project_name,
             label_column
@@ -372,7 +371,6 @@ def create_project_cb(
         return False, {
             'dataset_name': create_proj_dd_selection,
             'project_name': create_project_name,
-            'text_column': text_column,
             'data': new_current_project.to_dict('records')
         }
     else:
@@ -411,7 +409,7 @@ def add_dataset_cb(
     """
     datasets.create_dataset(new_data, dataset_name, description, text_column)
     if project_name_checked:
-        new_current_project, text_column = datasets.create_project(dataset_name, project_name, label_column)
+        new_current_project = datasets.create_project(dataset_name, project_name, label_column)
         return False, {
             'dataset_name': dataset_name,
             'project_name': project_name,
@@ -420,27 +418,3 @@ def add_dataset_cb(
         }
     else:
         return False, current_dataset
-
-
-@app.long_callback(
-    outputs=Output('index-created', 'data-index-created'),
-    inputs=Input('add-validator', 'data-upload-valid'),
-    states=[
-        State('new_data', 'data'),
-        State('index-created', 'data-index-created'),
-        State('ds-name-input', 'value'),
-        State('ds-text-unit-dd', 'value'),
-    ],
-    running=[
-        (Output('algo-box-info', 'children'), 'creating index!', '')
-    ],
-    prevent_initial_call=True
-)
-def faiss_index_from_upload(valid, uploaded_data, index_created, dataset_name, text_column):
-    print('longing the cb')
-    if valid:
-        # TODO: Here as well, some error handling if the index creation doesn't work
-        datasets.create_faiss_index(uploaded_data, dataset_name, text_column)
-        return index_created + 1
-    else:
-        raise dash.exceptions.PreventUpdate

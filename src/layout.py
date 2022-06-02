@@ -13,7 +13,6 @@ The content has three columns:
 3. the third that, uhm, I like. (yes, yes, it will go if I don't find use.)
 """
 
-from dash import dash_table
 from dash import dcc
 from dash import html
 import dash_bootstrap_components as dbc
@@ -33,7 +32,7 @@ header = dbc.Row([
         # class_name="pb-1"
     ),
     dbc.Col(
-        html.H3("Test Layout using the Grid", style={'textAlign': 'center'}),
+        html.H3("Annotation in the Loop", style={'textAlign': 'center'}),
         align='center',
         width=4,
         id='header-title-col',
@@ -45,127 +44,101 @@ header = dbc.Row([
     id='app-header',
 )
 
-text_unit_box = dbc.Col(
-    id="arg-list-box", children=[
-        html.Div('Argument Input', id="arg-list-header"),
-        dash_table.DataTable(
-            id='arg-table',
-            filter_action="native",
-            columns=[
-                {'name': 'Argument', 'id': 'text unit'},
-                {
-                    'name': 'Label', 'id': 'label',
-                    'editable': True, 'presentation': 'dropdown'
-                }
-            ],
-            data=[],
-            style_header={
-                'text_Align': 'center',
-            },
-            style_data={
-                'whiteSpace': 'normal',
-                'height': 'auto',
-                'page_size': '50',
-            },
-            style_data_conditional=[
-                {
-                    'if': {'column_id': 'text unit'},
-                    'textOverflow': 'ellipsis',
-                    'maxWidth': 0,
-                    'width': '90%',
-                    'textAlign': 'left'
-                    # 'cursor': 'pointer'
-                }
-            ]
-        ),
-        html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0})
+text_unit_view = dbc.Col(
+    id="text-unit-view", children=[
+        html.Div('Load a project to view some text!', id="text-unit-header"),
+        html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0, 'data-labelchanged': 0})
     ],
 )
 
 
-algo_result_box = dbc.Col(
-    id='algo-box', children=[
-        html.Div('Similar Arguments', id="algo-box-header"),
-        dash_table.DataTable(
-            id='algo-table',
-            columns=[
-                {'name': 'Argument', 'id': 'text unit'},
-                {
-                    'name': 'Label', 'id': 'label',
-                    'editable': True, 'presentation': 'dropdown'
-                }
-            ],
-            data=[],
-            style_header={
-                'text_Align': 'center',
-            },
-            style_data={
-                'whiteSpace': 'normal',
-                'height': 'auto',
-                'page_size': '50',
-            },
-            style_data_conditional=[
-                {
-                    'if': {'column_id': 'text unit'},
-                    'textOverflow': 'ellipsis',
-                    'maxWidth': 0,
-                    'width': '90%',
-                    'textAlign': 'left'
-                }
-            ]
-        )]
+algo_result_view = dbc.Col(
+    id='algo-view',
+    children=[
+        html.Div('Similar Arguments', id="algo-view-header"),
+        html.Div('Load a project and see similar arguments here!', id='algo-view-info'),
+        html.Div(id='algo-view-content'),
+        html.Div(hidden=True, id='index-created', **{'data-index-created': 0})
+    ]
 )
+
 
 label_list_header = html.H6("Labels", className="border-2 text-center text-white bg-info mt-0 mb-2")
 
-label_column = dbc.Col(
+
+label_add_components = html.Div(
+    [
+        dbc.Col(
+            dbc.Input(id='lbl-input', placeholder='Add Label..', type='text'),
+            width=9
+        ),
+        dbc.Col(
+            dbc.Button(
+                id='submit-lbl-button',
+                color='primary', children='Add', style={'width': '100%'}),
+            width=3
+        )
+    ],
+    hidden=True,
+    id='label-buttons'
+)
+
+label_menu = dbc.Col(
     children=[
         dbc.Row(
             id="label-header",
-            children=[
-                dbc.Col(
-                    dbc.Input(id='lbl-input', placeholder='Add Label..', type='text'),
-                    width=9
-                ),
-                dbc.Col(
-                    dbc.Button(
-                        id='submit-lbl-button',
-                        color='primary', children='Add', style={'width': '100%'}),
-                    width=3
-                )
-            ],
+            children=label_add_components,
             className="border-bottom border-2 border-dark g-0 mb-0",
         ),
         dbc.Row(
-            dbc.Col(id='label-list', children=[label_list_header])
+            dbc.Col(id='label-list', children=[
+                "Load a project and see its labels here"
+            ])
         )],
+)
+
+
+sidebar = dbc.Col(
+    dbc.Accordion([
+        dbc.AccordionItem(
+            [
+                dbc.Row(label_menu),
+
+            ],
+            title='Labels',
+            id='accordion-label-view'
+        )],
+        id='sidebar-accordion',
+        start_collapsed=True
+    ),
+    id='sidebar',
     width=2,
     className="border-end border-3 border-danger"
 )
+
 
 layout = dbc.Container([
     html.Div(hidden=True, id='modal-container'),
     header,
     dbc.Row([
-        label_column,
+        sidebar,
         dbc.Col([
             dbc.Row(
-                text_unit_box,
+                text_unit_view,
                 style={'height': '50%'},
                 class_name="overflow-auto"
             ),
             dbc.Row(
-                algo_result_box,
+                algo_result_view,
                 style={'height': '50%'},
                 class_name="overflow-auto"
             )],
-            width=8,
+            width=10,
             style={'height': '100%'},
-            className="border-end border-3 border-danger"
-        ),
-        dbc.Col([dbc.Button("row 1 col 3", style={"width": "100%"})], width=2)],
+            className="border-3 border-danger"
+        )],
         style={'height': '90%'},
-
     )],
-    fluid=True, style={"height": "100vh"}, class_name="background-main"
+    fluid=True, style={"height": "100vh"}
+
 )
