@@ -34,6 +34,8 @@ def fill_text_unit_view(current_dataset):
        new arguments table and a new, blank algorithm table. It's still
        recreated, so that it has the correct column ids
     """
+    if not ctx.triggered[0]['value']:
+        raise PreventUpdate
     header = html.Div(
         f'Text data of {current_dataset["project_name"]} ',
         id="text-unit-header"
@@ -62,8 +64,10 @@ def open_collapse(button, is_open):
 
 
 @app.callback(
-    Output({'type': 'add-label-radio-input', 'index': ALL}, 'options'),
-    Input('label-list', 'children'),
+    output=dict(
+        options=Output({'type': 'tu-label-select', 'index': ALL}, 'options')
+    ),
+    inputs=Input('label-list', 'children'),
     prevent_initial_call=True
 )
 def update_label_options(label_list):
@@ -84,21 +88,19 @@ def update_label_options(label_list):
               for list_item in label_list[1:]]
     outputs = len(ctx.outputs_grouping['options'])
     options = [{"label": label, "value": label} for label in labels]
-    return [options for _ in range(outputs)]
+    return {'options': [options for _ in range(outputs)]}
 
 
 @app.callback(
     Output({'type': 'tu-footer', 'index': MATCH}, 'children'),
-    Input({'type': 'tu-submit-lbl-btn', 'index': MATCH}, 'n_clicks'),
-    State({'type': 'add-label-radio-input', 'index': MATCH}, 'value'),
+    Input({'type': 'tu-label-select', 'index': MATCH}, 'value'),
     prevent_initial_call=True
 )
-def add_label_to_text(button_click, label):
+def add_label_to_text(label):
     if not label:
         raise PreventUpdate
     if ctx.triggered:
         index = ctx.triggered_id['index']
-        print(index)
     return create_label_pill(label, index)
 
 

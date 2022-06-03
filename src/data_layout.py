@@ -7,13 +7,8 @@ import numpy as np
 
 
 def create_label_pill(label, id):
-    pill = dbc.Badge([
+    pill = dbc.Badge(
         label,
-        dbc.Button(
-            className="bi bi-x py-0 px-1 position-absolute end-0 border-0 badge rounded-pill",
-            id={'type': 'tu-label-remove-btn', 'index': id, 'label': label},
-            style={'color': 'white', 'height': '100%', 'background': 'red'},
-        )],
         pill=True, color="primary", className="me-1",
         id={'type': 'tu-label-pill', 'index': id, 'label': label}
     )
@@ -41,7 +36,7 @@ def create_data_card(text_unit, labels, label_key, text_key):
             dbc.Row(
                 dbc.Col(
                     id={'type': 'data-btn-container', 'index': text_unit['id']},
-                    className=" mb-3 bg-secondary",
+                    className=" mb-3 border-bottom border-1",
                     children=[
                         dbc.Button(
                             html.Span([html.I(className="bi bi-tag py-0 px-1"), "Add Label"]),
@@ -51,29 +46,21 @@ def create_data_card(text_unit, labels, label_key, text_key):
                             html.Span([html.I(className="bi bi-arrow-left-right py-0 px-1"), "Get similar text"]),
                             id={'type': 'tu-similarity-search', 'index': text_unit['id']}
                         ),
-                        dbc.Collapse([
-                            dbc.Card(
-                                dbc.Row([
-                                    dbc.Col(
-                                        dbc.RadioItems(
-                                            options=[
-                                                {"label": label, "value": label}
-                                                for label in labels
-                                            ],
-                                            id={'type': 'add-label-radio-input', 'index': text_unit['id']},
-                                            value=text_unit[label_key]
-                                            if text_unit[label_key] and not np.isnan(text_unit[label_key])
-                                            else None
-                                        )
-                                    ),
-                                    dbc.Col(
-                                        dbc.Button(
-                                            html.Span([html.I(className="bi bi-plus-square"), "add"]),
-                                            id={'type': 'tu-submit-lbl-btn', 'index': text_unit['id']}
-                                        )
-                                    )
-                                ]),
-                            )],
+                        dbc.Collapse(
+                            html.Div([
+                                dbc.RadioItems(
+                                    options=[
+                                        {"label": label, "value": label}
+                                        for label in labels
+                                    ],
+                                    id={'type': 'tu-label-select', 'index': text_unit['id']},
+                                    value=text_unit[label_key]
+                                    if text_unit[label_key] and not np.isnan(text_unit[label_key])
+                                    else None,
+                                    inline=True
+                                )],
+                                className="my-2"
+                            ),
                             id={'type': 'add-lbl-collapse', 'index': text_unit['id']},
                             is_open=False,
                         )
@@ -82,7 +69,7 @@ def create_data_card(text_unit, labels, label_key, text_key):
             ),
             dbc.Row(
                 dbc.Col(
-                    html.P(
+                    html.H4(
                         text_unit[text_key],
                         id={'type': 'text-unit', 'index': text_unit['id']}
                     )
@@ -92,7 +79,7 @@ def create_data_card(text_unit, labels, label_key, text_key):
         dbc.CardFooter(
             create_label_pill(text_unit[label_key], text_unit['id'])
             if text_unit[label_key] and not np.isnan(text_unit[label_key])
-            else 'add_label',
+            else 'Add a label to the Text and see its label set here!',
             id={'type': 'tu-footer', 'index': text_unit['id']},
         ),
     ],
