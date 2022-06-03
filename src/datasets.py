@@ -90,7 +90,7 @@ def create_project(dataset_name, project_name, label_column=False):
     }
     with open(f'{DATA_PATH}/projects_meta.yaml', 'a') as f:
         f.write(yaml.dump(project_dict))
-    return dataset[["id", text_column, f'{project_name}_label']]
+    return text_column
 
 
 def load_project(project_name):
@@ -99,12 +99,12 @@ def load_project(project_name):
     if project_name in existing_projects.keys():
         dataset_name = existing_projects[project_name]["dataset"]
         text_column = dataset_meta[dataset_name]['text column']
-        dataset = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
-        return dataset[["id", text_column, f'{project_name}_label']], dataset_name, text_column
+        return dataset_name, text_column
 
 
 def fetch_data_slice(project_name, size=10, start=0):
-    df, _, text_column = load_project(project_name)
+    dataset_name, text_column = load_project(project_name)
+    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
     return df.iloc[start:start + size].to_dict('records'), text_column
 
 
