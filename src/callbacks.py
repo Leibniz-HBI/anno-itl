@@ -13,7 +13,7 @@ from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import datasets
 import open_modal
-from layout import label_list_header, label_add_components
+from layout import label_list_header
 
 
 @app.callback(
@@ -41,18 +41,17 @@ def enable_save_button(data_changed, label_changed, data_saved, current_dataset)
 @app.callback(
     Output('clean-bit', 'data-saved'),
     Input('btn-save-data', 'n_clicks'),
-    State('text-unit-view', 'children'),
     State('clean-bit', 'data-saved'),
     State('label-list', 'children'),
     State('current_dataset', 'data'),
+    State({'type': 'tu-label-pill', 'index': ALL, 'label': ALL}, 'label'),
+    prevent_initial_call=True
 )
-def save_data(n_clicks, current_loaded_text, clean_bit, label_list, current_dataset):
+def save_data(n_clicks, clean_bit, label_list, current_dataset, label_pills):
     """Saves the changes to the project.
 
     Afterwards the clean bit is increased to signal that the data was stored.
     """
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     # datasets.update_project_columns(
     #    current_table_data,
     #   current_dataset['project_name'],
@@ -121,6 +120,7 @@ def create_label_card(label, index):
     Output('label-list', 'children'),
     Output('label-buttons', 'hidden'),
     Output('dirty-bit', 'data-labelchanged'),
+    Output('lbl-input', 'value'),
     Input('submit-lbl-button', 'n_clicks'),
     Input("lbl-input", "n_submit"),
     Input({'type': 'label-remove-btn', 'index': ALL}, 'n_clicks'),
@@ -161,11 +161,11 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
         labels = datasets.load_labels(current_dataset['project_name'])
         for index, lbl in enumerate(labels):
             children.append(create_label_card(lbl, index))
-        return children, False, dirty_bit
+        return children, False, dirty_bit, ''
     else:
         button_id = int(re.findall(r'\d+', trigger)[0])
         # don't iterate over header
         for child in children[1:]:
             if child['props']['id']['index'] == button_id:
                 children.remove(child)
-    return children, False, dirty_bit + 1
+    return children, False, dirty_bit + 1, ''
