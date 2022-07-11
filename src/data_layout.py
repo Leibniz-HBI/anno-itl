@@ -3,7 +3,6 @@
 
 from dash import html
 import dash_bootstrap_components as dbc
-import numpy as np
 
 
 def create_label_pill(label, id):
@@ -55,7 +54,7 @@ def create_data_card(text_unit, labels, label_key, text_key):
                                     ],
                                     id={'type': 'tu-label-select', 'index': text_unit['id']},
                                     value=text_unit[label_key]
-                                    if text_unit[label_key] and not np.isnan(text_unit[label_key])
+                                    if text_unit[label_key]
                                     else None,
                                     inline=True
                                 )],
@@ -78,7 +77,7 @@ def create_data_card(text_unit, labels, label_key, text_key):
         ]),
         dbc.CardFooter(
             create_label_pill(text_unit[label_key], text_unit['id'])
-            if text_unit[label_key] and not np.isnan(text_unit[label_key])
+            if text_unit[label_key]
             else 'Add a label to the Text and see its label set here!',
             id={'type': 'tu-footer', 'index': text_unit['id']},
         ),

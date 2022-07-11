@@ -5,6 +5,7 @@ from app import app
 from dash.exceptions import PreventUpdate
 from dash import html, Input, Output, State, MATCH, ALL, ctx
 from data_layout import create_label_pill
+import dash_bootstrap_components as dbc
 
 
 import datasets
@@ -36,9 +37,14 @@ def fill_text_unit_view(current_dataset):
     """
     if not ctx.triggered[0]['value']:
         raise PreventUpdate
-    header = html.Div(
-        f'Text data of {current_dataset["project_name"]} ',
-        id="text-unit-header"
+    header = dbc.Row(
+        dbc.Col([
+            dbc.Button("fetch new data", className="float-start"),
+            html.H5(f'Text data of {current_dataset["project_name"]}', className="text-center"),
+        ],
+            id="text-unit-header",
+            class_name="mb-1"
+        )
     )
     children = [header]
     data, text_column = datasets.fetch_data_slice(current_dataset['project_name'])

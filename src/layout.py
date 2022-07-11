@@ -32,7 +32,7 @@ header = dbc.Row([
         # class_name="pb-1"
     ),
     dbc.Col(
-        html.H3("Annotation in the Loop", style={'textAlign': 'center'}),
+        html.H3("Annotation in the Loop", className="text-center"),
         align='center',
         width=4,
         id='header-title-col',
@@ -46,7 +46,11 @@ header = dbc.Row([
 
 text_unit_view = dbc.Col(
     id="text-unit-view", children=[
-        html.Div('Load a project to view some text!', id="text-unit-header"),
+        html.H5(
+            'Load a project to view some text!',
+            id="text-unit-header",
+            className="text-center"
+        ),
         html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0, 'data-labelchanged': 0})
     ],
 )

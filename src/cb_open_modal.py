@@ -2,8 +2,9 @@
 """
 import re
 from app import app
-import dash
-from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+from dash.dash import no_update
+from dash import Input, Output, State, ctx
 
 import datasets
 
@@ -12,37 +13,33 @@ import datasets
     Output('dataset-name-invalid-message', 'children'),
     Output('ds-name-input', 'valid'),
     Output('ds-name-input', 'invalid'),
-    Input('ds-name-input', 'value')
+    Input('ds-name-input', 'value'),
+    prevent_initial_call=True
 )
 def validate_dataset_name_creation(name):
     """checks whether the name for a dataset is valid and not taken"""
-
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     if len(name) < 4:
         return "not displayed", False, False
     pattern = re.compile(r"^[a-zA-Z0-9_]{4,30}$")
     valid = True if pattern.match(name) else False
     if not valid:
-        return "Name not valid", False, True
+        return no_update, False, True
     else:
         if datasets.check_name_exists(name):
             return "Name already taken", False, True
         else:
-            return "not displayed", True, False
+            return no_update, True, False
 
 
 @app.callback(
     Output('dataset-description-invalid-message', 'children'),
     Output('ds-description-input', 'valid'),
     Output('ds-description-input', 'invalid'),
-    Input('ds-description-input', 'value')
+    Input('ds-description-input', 'value'),
+    prevent_initial_call=True
 )
 def validate_dataset_desc_creation(description):
     """checks whether the description for a dataset is valid"""
-
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     if len(description) < 10:
         return "not displayed", False, False
     pattern = re.compile(r"^[a-zA-Z0-9_äÄÖöÜüß ,!.?]{10,500}$")
@@ -63,6 +60,7 @@ def validate_dataset_desc_creation(description):
     Input('dataset-file-input', 'contents'),
     Input('manage-datasets-modal', 'is_open'),
     State('dataset-file-input', 'filename'),
+    prevent_initial_call=True
 )
 def manage_dataset_upload(upload, modal_open, filename):
     """Handles uploaded data for dataset creation.
@@ -75,10 +73,7 @@ def manage_dataset_upload(upload, modal_open, filename):
     either finished or was canceled).
     """
 
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
-    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'dataset-file-input':
+    if ctx.triggered_id == 'dataset-file-input':
         valid_file_endings = ['.xls', '.csv', '.ctv']
         if not filename[-4:] in valid_file_endings:
             return 'danger', 'Not a valid File type', {}, True, [], []
@@ -94,9 +89,9 @@ def manage_dataset_upload(upload, modal_open, filename):
             return 'danger', 'File was not readable', {}, True, [], []
     else:
         if not modal_open:
-            return 'sucess', 'not Displayed', {}, True, [], []
+            return 'sucess', no_update, {}, True, [], []
         else:
-            raise dash.exceptions.PreventUpdate
+            raise PreventUpdate
 
 
 @app.callback(
@@ -112,6 +107,7 @@ def manage_dataset_upload(upload, modal_open, filename):
     State('ds-text-unit-dd', 'value'),
     State('ds-project-label-selection-dd', 'value'),
     State('ds-project-label-checkbox', 'value'),
+    prevent_initial_call=True
 )
 def validate_add_dataset(
         n_clicks, name_valid, desc_valid, new_data,
@@ -119,9 +115,6 @@ def validate_add_dataset(
         text_unit_selection, proj_label_selection, label_checked):
     """validates the input for adding a new dataset and creates the error
     message when something is missing."""
-
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     validators = [name_valid, desc_valid, new_data, text_unit_selection]
     invalid_item_names = ['name', 'description', 'uploaded data', 'text column selection']
     if project_name_checked:
@@ -147,14 +140,13 @@ def validate_add_dataset(
     State('create-proj-name', 'valid'),
     State('create-project-label-checkbox', 'value'),
     State('create-project-label-selection-dd', 'value'),
-    State('create-project-dd', 'value')
+    State('create-project-dd', 'value'),
+    prevent_initial_call=True
 
 )
 def validate_create_project(n_clicks, name_valid, label_checked, label_selection, proj_selection):
     """validates all inputs for the creation of a new project and displays error
     message if something is missing or not valid."""
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     validators = [name_valid, proj_selection]
     invalid_item_names = ['Project name', 'Project Selection']
     if label_checked:
@@ -173,12 +165,11 @@ def validate_create_project(n_clicks, name_valid, label_checked, label_selection
     Output('create-proj-name-invalid-message', 'children'),
     Output('create-proj-name', 'valid'),
     Output('create-proj-name', 'invalid'),
-    Input('create-proj-name', 'value')
+    Input('create-proj-name', 'value'),
+    prevent_initial_call=True
 )
 def validate_create_project_name(name):
     """checks whether a project name for a new project is valid and not taken"""
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     if len(name) < 4:
         return "not displayed", False, False
     pattern = re.compile(r"^[a-zA-Z0-9_]{4,30}$")
@@ -196,12 +187,11 @@ def validate_create_project_name(name):
     Output('new-ds-proj-name-invalid-message', 'children'),
     Output('new-ds-proj-name', 'valid'),
     Output('new-ds-proj-name', 'invalid'),
-    Input('new-ds-proj-name', 'value')
+    Input('new-ds-proj-name', 'value'),
+    prevent_initial_call=True
 )
 def validate_ds_project_name(name):
     """checks, whether a project name from a new dataset is valid and not taken"""
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     if len(name) < 4:
         return "not displayed", False, False
     pattern = re.compile(r"^[a-zA-Z0-9_]{4,30}$")
@@ -217,13 +207,11 @@ def validate_ds_project_name(name):
 
 @app.callback(
     Output('create-project-label-selection-dd', 'options'),
-    Input('create-project-dd', 'value')
+    Input('create-project-dd', 'value'),
+    prevent_initial_call=True
 )
 def get_label_options(dataset):
     """populates dropdown for labels to pick from dataset as labels for new project"""
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
-
     columns = datasets.get_dataset_labels(dataset)
     return [{'label': f'{key[0]} ({key[1]} unique items)', 'value': key[0]} for key in columns]
 
@@ -277,41 +265,39 @@ def check_project_creation_input(checked):
 @app.callback(
     Output('manage-datasets-modal', 'is_open'),
     Output('current_dataset', 'data'),
-
-    Input('add-validator', 'data-upload-valid'),
-    Input('create-validator', 'data-create-valid'),
-    Input('open-project-btn', 'n_clicks'),
-    Input('close-upload-btn', 'n_clicks'),
-
-    State('new_data', 'data'),
-    State('current_dataset', 'data'),
-
-    State('ds-name-input', 'value'),
-    State('ds-description-input', 'value'),
-    State('ds-text-unit-dd', 'value'),
-    State('ds-project-label-selection-dd', 'value'),
-    State('ds-project-label-checkbox', 'value'),
-
-    State('new-ds-proj-name', 'value'),
-    State('ds-project-checkbox', 'value'),
-
-    State('create-project-dd', 'value'),
-    State('create-proj-name', 'value'),
-    State('create-proj-name', 'valid'),
-    State('create-project-label-checkbox', 'value'),
-    State('create-project-label-selection-dd', 'value'),
-
-    State('open-project-dd', 'value'),
+    inputs={'all_inputs': {
+        "add_valid": Input('add-validator', 'data-upload-valid'),
+        "create_valid": Input('create-validator', 'data-create-valid'),
+        "open_button": Input('open-project-btn', 'n_clicks'),
+        "close_button": Input('close-upload-btn', 'n_clicks'),
+    }
+    },
+    state={
+        "stores": {
+            "new_data": State('new_data', 'data'),
+            "current_dataset": State('current_dataset', 'data'),
+        },
+        "dataset": {
+            "name": State('ds-name-input', 'value'),
+            "description": State('ds-description-input', 'value'),
+            "tu_selection": State('ds-text-unit-dd', 'value'),
+            "label_selection": State('ds-project-label-selection-dd', 'value'),
+            "label_checked": State('ds-project-label-checkbox', 'value'),
+            "new_project_checked": State('ds-project-checkbox', 'value'),
+            "new_project_name": State('new-ds-proj-name', 'value'),
+        },
+        "project": {
+            "dataset_selection": State('create-project-dd', 'value'),
+            "new_name": State('create-proj-name', 'value'),
+            "new_name_valid": State('create-proj-name', 'valid'),
+            "label_checked": State('create-project-label-checkbox', 'value'),
+            "label_selection": State('create-project-label-selection-dd', 'value'),
+            "open_selection": State('open-project-dd', 'value')
+        }
+    },
     prevent_initial_call=True
 )
-def finalize_data_dialogue(
-        add_valid, create_valid, open_button, close_button,
-        new_data, current_dataset,
-        ds_name, ds_description, ds_text_unit_selection, ds_label_selection, label_checked,
-        ds_project_name, ds_project_name_checked,
-        create_proj_dd_selection, create_project_name, create_project_name_valid,
-        create_label_checked, create_proj_label_selection,
-        open_project_dd_selection):
+def finalize_data_dialogue(all_inputs, stores, dataset, project):
     """Creates Dataset (and project, if checked) or closes dialogue.
 
     First it is checked which button trigger the function. If it's the close
@@ -324,31 +310,31 @@ def finalize_data_dialogue(
     3. The Open Project for (open-project-btn) for opening en existing project.
 
     """
-    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'close-upload-btn':
-        return False, current_dataset
-    elif trigger == 'add-validator':
+    if ctx.triggered_id == 'close-upload-btn':
+        return False, no_update
+    elif ctx.triggered_id == 'add-validator':
         return add_dataset_cb(
-            new_data, ds_project_name_checked,
-            ds_name, ds_text_unit_selection, ds_label_selection if label_checked else False,
-            ds_description, ds_project_name, current_dataset
+            stores["new_data"], dataset["new_project_checked"],
+            dataset["name"], dataset["tu_selection"],
+            dataset["label_selection"] if dataset["label_checked"] else False,
+            dataset["description"], dataset["new_project_name"], stores["current_dataset"]
         )
-    elif trigger == 'create-validator':
+    elif ctx.triggered_id == 'create-validator':
         return create_project_cb(
-            create_project_name_valid, create_proj_dd_selection,
-            create_project_name, current_dataset,
-            create_proj_label_selection if create_label_checked else False
+            project["new_name_valid"], project["dataset_selection"],
+            project["new_name"],
+            project["label_selection"] if project["label_checked"] else False
         )
-    elif trigger == 'open-project-btn':
-        if open_project_dd_selection:
-            return open_project_cb(open_project_dd_selection)
+    elif ctx.triggered_id == 'open-project-btn':
+        if project["open_selection"]:
+            return open_project_cb(project["open_selection"])
         else:
-            return True, current_dataset
+            return True, no_update
 
 
 def create_project_cb(
         create_project_name_valid, create_proj_dd_selection,
-        create_project_name, current_dataset, label_column):
+        create_project_name, label_column):
     """callback for the create Project Button.
 
     Args:
@@ -374,7 +360,7 @@ def create_project_cb(
             'text_column': text_column,
         }
     else:
-        return True, current_dataset
+        return True, no_update
 
 
 def open_project_cb(open_project_dd_selection):
@@ -415,4 +401,4 @@ def add_dataset_cb(
             'text_column': text_column,
         }
     else:
-        return False, current_dataset
+        return False, no_update

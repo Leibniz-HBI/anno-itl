@@ -104,7 +104,7 @@ def load_project(project_name):
 
 def fetch_data_slice(project_name, size=10, start=0):
     dataset_name, text_column = load_project(project_name)
-    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv')
+    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv', keep_default_na=False)
     return df.iloc[start:start + size].to_dict('records'), text_column
 
 
@@ -259,5 +259,15 @@ def load_labels(project_name):
     else:
         labels = []
     return labels
+
+
+def save_project_changes(label_updates, project_name):
+    dataset_name, _ = load_project(project_name)
+    label_col = project_name + '_label'
+    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv', index_col='id')
+    for update in label_updates:
+        df.at[update[0], label_col] = update[1]
+    df.to_csv(f'{DATA_PATH}/{dataset_name}.csv')
+
 
 

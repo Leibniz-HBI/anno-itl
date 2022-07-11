@@ -3,12 +3,8 @@ Here are all callbacks that relate to the main layout and not to the project
 opening modal or the data tables. They are in different files, but they all are
 imported here in order to have them called
 """
-import re
-import pandas as pd
 from app import app
-import dash
-from dash.dependencies import Input, Output, State, ALL
-from dash import html
+from dash import html, Input, Output, State, ALL, ctx
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import datasets
@@ -18,21 +14,23 @@ from layout import label_list_header
 
 @app.callback(
     Output('btn-save-data', 'disabled'),
-    Input('dirty-bit', 'data-changed'),
-    Input('dirty-bit', 'data-labelchanged'),
-    Input('clean-bit', 'data-saved'),
-    Input('current_dataset', 'data'),
+    inputs={
+        "all_inputs": {
+            "data_changed": Input('dirty-bit', 'data-changed'),
+            "label_changed": Input('dirty-bit', 'data-labelchanged'),
+            "data_saved": Input('clean-bit', 'data-saved'),
+            "current_dataset": Input('current_dataset', 'data')
+        }
+    },
+    prevent_initial_call=True
 )
-def enable_save_button(data_changed, label_changed, data_saved, current_dataset):
+def enable_save_button(all_inputs):
     """Enables/disables the save button.
 
     The button only needs to be enabled if the dirty bit is changed. If a new
     dataset is loaded, or changes are saved, the button is disabled.
     """
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
-    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'dirty-bit':
+    if ctx.triggered_id == 'dirty-bit':
         return False
     else:
         return True
@@ -40,14 +38,16 @@ def enable_save_button(data_changed, label_changed, data_saved, current_dataset)
 
 @app.callback(
     Output('clean-bit', 'data-saved'),
-    Input('btn-save-data', 'n_clicks'),
-    State('clean-bit', 'data-saved'),
-    State('label-list', 'children'),
-    State('current_dataset', 'data'),
-    State({'type': 'tu-label-pill', 'index': ALL, 'label': ALL}, 'label'),
+    inputs={'n_clicks': Input('btn-save-data', 'n_clicks')},
+    state={
+        'clean_bit': State('clean-bit', 'data-saved'),
+        'label_list': State('label-list', 'children'),
+        'current_dataset': State('current_dataset', 'data'),
+        'label_footers': State({'type': 'tu-footer', 'index': ALL}, 'children'),
+    },
     prevent_initial_call=True
 )
-def save_data(n_clicks, clean_bit, label_list, current_dataset, label_pills):
+def save_data(n_clicks, clean_bit, label_list, current_dataset, label_footers):
     """Saves the changes to the project.
 
     Afterwards the clean bit is increased to signal that the data was stored.
@@ -57,6 +57,13 @@ def save_data(n_clicks, clean_bit, label_list, current_dataset, label_pills):
     #   current_dataset['project_name'],
     #     current_dataset['dataset_name']
     # )
+    label_state = []
+    for footer in label_footers:
+        if isinstance(footer, dict):
+            index = footer["props"]["id"]["index"]
+            label = footer["props"]["id"]["label"]
+            label_state.append((index, label))
+    datasets.save_project_changes(label_state, current_dataset['project_name'])
     labels = [label['props']['id']['label'] for label in label_list[1:]]
     datasets.save_labels(current_dataset['project_name'], labels)
     return clean_bit + 1
@@ -65,7 +72,8 @@ def save_data(n_clicks, clean_bit, label_list, current_dataset, label_pills):
 @app.callback(
     Output('modal-container', 'children'),
     Input('btn-new-data', 'n_clicks'),
-    State('current_dataset', 'data')
+    State('current_dataset', 'data'),
+    prevent_initial_call=True
 )
 def load_data_diag(open_clicks, current_dataset):
     """Opens new dataset modal.
@@ -82,8 +90,6 @@ def load_data_diag(open_clicks, current_dataset):
     Returns:
         children of header with new modal.
     """
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
     return open_modal.open_project_modal(
         current_dataset['project_name'] if current_dataset else None)
 
@@ -117,19 +123,28 @@ def create_label_card(label, index):
 
 
 @app.callback(
-    Output('label-list', 'children'),
-    Output('label-buttons', 'hidden'),
-    Output('dirty-bit', 'data-labelchanged'),
-    Output('lbl-input', 'value'),
-    Input('submit-lbl-button', 'n_clicks'),
-    Input("lbl-input", "n_submit"),
-    Input({'type': 'label-remove-btn', 'index': ALL}, 'n_clicks'),
-    Input('current_dataset', 'data'),
-    State('lbl-input', 'value'),
-    State('label-list', 'children'),
-    State('dirty-bit', 'data-labelchanged'),
+    output={
+        "new_label_list": Output('label-list', 'children'),
+        "label_button_hide": Output('label-buttons', 'hidden'),
+        "dirty_bit": Output('dirty-bit', 'data-labelchanged'),
+        "label_input_field": Output('lbl-input', 'value'),
+    },
+    inputs={
+        "triggers": {
+            "label_submit": Input('submit-lbl-button', 'n_clicks'),
+            "label_enter": Input("lbl-input", "n_submit"),
+            "label_remove": Input({'type': 'label-remove-btn', 'index': ALL}, 'n_clicks'),
+            "current_dataset": Input('current_dataset', 'data'),
+        }
+    },
+    state={
+        "label_input": State('lbl-input', 'value'),
+        "children": State('label-list', 'children'),
+        "dirty_bit": State('dirty-bit', 'data-labelchanged'),
+    },
+    prevent_initial_call=True
 )
-def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, children, dirty_bit):
+def add_label(triggers, label_input, children, dirty_bit):
     """Handle Label input.
     Data from the input box can be submitted with enter and button click. If
     that happens, a new label will be created if it doesn't exist yet.
@@ -143,10 +158,7 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
     label-list are still printed to the screen. Therefore they don't trigger
     when the label-list is in fact empty and thus not printed.
     """
-    if not dash.callback_context.triggered[0]['value']:
-        raise dash.exceptions.PreventUpdate
-    trigger = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
-    if trigger in ['submit-lbl-button', 'lbl-input']:
+    if ctx.triggered_id in ['submit-lbl-button', 'lbl-input']:
         if label_input:
             already_there = False
             for label in children[1:]:
@@ -156,16 +168,27 @@ def add_label(n_clicks, n_submit, remove_click, current_dataset, label_input, ch
                 raise PreventUpdate
             else:
                 children.append(create_label_card(label_input, len(children)))
-    elif trigger == 'current_dataset':
+    elif ctx.triggered_id == 'current_dataset':
         children = [label_list_header]
-        labels = datasets.load_labels(current_dataset['project_name'])
+        labels = datasets.load_labels(triggers['current_dataset']['project_name'])
         for index, lbl in enumerate(labels):
             children.append(create_label_card(lbl, index))
-        return children, False, dirty_bit, ''
+        return {
+            "new_label_list": children,
+            "label_button_hide": False,
+            "dirty_bit": dirty_bit,
+            "label_input_field": ''
+        }
     else:
-        button_id = int(re.findall(r'\d+', trigger)[0])
+        print(ctx.triggered_id)
+        button_id = ctx.triggered_id['index']
         # don't iterate over header
         for child in children[1:]:
             if child['props']['id']['index'] == button_id:
                 children.remove(child)
-    return children, False, dirty_bit + 1, ''
+    return {
+        "new_label_list": children,
+        "label_button_hide": False,
+        "dirty_bit": dirty_bit + 1,
+        "label_input_field": ''
+    }
