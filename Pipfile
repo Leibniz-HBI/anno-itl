@@ -31,6 +31,7 @@ celery = {extras = ["redis"], version = "*"}
 cookiecutter = "*"
 dash-selectable = "*"
 gunicorn = "*"
+elasticsearch-dsl = "*"
 
 [requires]
 python_version = "3.9"
