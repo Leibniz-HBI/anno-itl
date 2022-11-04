@@ -4,7 +4,8 @@
 from app import app
 from dash.exceptions import PreventUpdate
 from dash import html, Input, Output, State, MATCH, ALL, ctx
-from data_layout import create_label_pill
+from dash.dash import no_update
+from data_layout import create_data_card, create_label_pill
 import dash_bootstrap_components as dbc
 
 
@@ -15,7 +16,8 @@ SIMILARITY_SEARCH_RESULTS = 10
 
 
 @app.callback(
-    Output('text-unit-view', 'children'),
+    Output('text-unit-data', 'children'),
+    Output('text-unit-header-text', 'children'),
     Input('current_dataset', 'data'),
     prevent_initial_call=True
 )
@@ -37,26 +39,17 @@ def fill_text_unit_view(current_dataset):
     """
     if not ctx.triggered[0]['value']:
         raise PreventUpdate
-    header = dbc.Row(
-        dbc.Col([
-            dbc.Button("fetch new data", className="float-start"),
-            html.H5(f'Text data of {current_dataset["project_name"]}', className="text-center"),
-        ],
-            id="text-unit-header",
-            class_name="mb-1"
-        )
-    )
-    children = [header]
+    header_text = f'Text data of {current_dataset["project_name"]}'
     data, text_column = datasets.fetch_data_slice(current_dataset['project_name'])
     label_key = f'{current_dataset["project_name"]}_label'
     labels = datasets.load_labels(current_dataset['project_name'])
-    children.extend([
+    children = [
         data_layout.create_data_card(text_unit, labels, label_key, text_column)
-        for text_unit in data])
+        for text_unit in data]
     # it aint a bit....
     dirty_bit = html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0, 'data-labelchanged': 0})
     children.append(dirty_bit)
-    return children
+    return children, header_text
 
 
 @app.callback(
@@ -118,3 +111,38 @@ def add_label_to_text(label):
 )
 def trigger_data_change(happening, dirty_bit):
     return dirty_bit + 1
+
+
+@app.callback(
+    Output('algo-results', 'children'),
+    inputs=dict(
+        btns=Input({'type': 'tu-similarity-search', 'index': ALL}, 'n_clicks'),
+        current_dataset=State('current_dataset', 'data')
+    ),
+    prevent_initial_call=True
+)
+def similarity_search_for_text(btns, current_dataset):
+    if not ctx.triggered[0]['value']:
+        raise PreventUpdate
+    print(ctx.triggered_id)
+    for button in ctx.args_grouping.btns:
+        if button.triggered:
+            if button.value:
+                id = int(button.id.index)
+    similars = datasets.similarity_request(current_dataset, id)
+    print('similarity results:')
+    print(similars)
+    header = [html.Span(f'Here are the results for text unit with id {id}')]
+    units = []
+    label_key = f'{current_dataset["project_name"]}_label'
+    labels = datasets.load_labels(current_dataset['project_name'])
+    for id in similars:
+        data = datasets.get_data_from_id(current_dataset["project_name"], id)
+        print(data)
+        units.append(
+            create_data_card(
+                data, labels,
+                label_key, current_dataset['text_column']
+            )
+        )
+    return header + units

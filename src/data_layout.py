@@ -62,7 +62,8 @@ def create_data_card(text_unit, labels, label_key, text_key):
                             ),
                             id={'type': 'add-lbl-collapse', 'index': text_unit['id']},
                             is_open=False,
-                        )
+                        ),
+                        html.Span(f'ID: {text_unit["id"]}', className="text-right font-weight-bold")
                     ]
                 )
             ),

@@ -46,24 +46,53 @@ header = dbc.Row([
 
 text_unit_view = dbc.Col(
     id="text-unit-view", children=[
-        html.H5(
-            'Load a project to view some text!',
-            id="text-unit-header",
-            className="text-center"
+        dbc.Row(
+            dbc.Col(
+                id='text-unit-header',
+                children=[
+                    html.H5('Text unit view', className="text-center", id='text-unit-header-text'),
+                    dbc.Button("fetch new data", className="float-start"),
+                ]
+            ),
+            className="sticky-top bg-white"
         ),
-        html.Div(hidden=True, id='dirty-bit', **{'data-changed': 0, 'data-labelchanged': 0})
+        dbc.Row(
+            dbc.Col(
+                [html.Div('load a project and work through those text snippets!'),
+                html.Div(
+                    hidden=True,
+                    id='dirty-bit',
+                    **{
+                        'data-changed': 0,
+                        'data-labelchanged': 0
+                    }
+                )],
+                id='text-unit-data',
+            )
+        )
     ],
 )
 
 
 algo_result_view = dbc.Col(
-    id='algo-view',
-    children=[
-        html.Div('Similar Arguments', id="algo-view-header"),
-        html.Div('Load a project and see similar arguments here!', id='algo-view-info'),
-        html.Div(id='algo-view-content'),
-        html.Div(hidden=True, id='index-created', **{'data-index-created': 0})
-    ]
+    id='algo-view',children=[
+        dbc.Row(
+            dbc.Col(
+                id='algo-header',
+                children=[
+                    html.H5('Similarity Search Results', className="text-center")
+                ]
+            ),
+            className="sticky-top bg-white"
+        ),
+        dbc.Row(
+            dbc.Col(
+                html.Div('load a project and find those similarities!'),
+                id='algo-results',
+
+            )
+        )
+    ],
 )
 
 
@@ -130,7 +159,7 @@ layout = dbc.Container([
             dbc.Row(
                 text_unit_view,
                 style={'height': '50%'},
-                class_name="overflow-auto"
+                class_name="overflow-auto border-3 border-danger border-bottom"
             ),
             dbc.Row(
                 algo_result_view,

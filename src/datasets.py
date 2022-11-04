@@ -108,6 +108,21 @@ def fetch_data_slice(project_name, size=10, start=0):
     return df.iloc[start:start + size].to_dict('records'), text_column
 
 
+def get_data_from_id(project_name, id):
+    """gets data from dataset for an id
+
+    Args:
+        project_name: project name
+        id: id
+
+    Returns:
+        text and label data
+    """
+    dataset_name, text_column = load_project(project_name)
+    df = pd.read_csv(f'{DATA_PATH}/{dataset_name}.csv', keep_default_na=False)
+    return df[df.id == id].to_dict('records')[0]
+
+
 def store_embeddings(embeddings, filename):
     """Stores embeddings on disk.
     If these are corespondend to a data set in the data sets folder, give it the
@@ -141,8 +156,20 @@ def create_faiss_index(data, name, text_column):
     return True
 
 
+def similarity_request(current_dataset, id):
+    """executes frontend request for 'get similar text'.
+
+    Args:
+        current_dataset (_type_): current_dataset info from fronten
+        id (_type_): id for which new data is needed
+    """
+    df = pd.read_csv(f'{DATA_PATH}/{current_dataset["dataset_name"]}.csv')
+    text = df.loc[id][current_dataset["text_column"]]
+    return search_faiss_with_string(text, current_dataset["dataset_name"], 10)
+
+
 def search_faiss_with_string(text, index_name, k):
-    """ searches a faiss index with the model and returns the indices of the k
+    """ searches a faiss index with a string and returns the indices of the k
     most similar entries in the index as a list.
     """
     if os.path.isfile(f'{FAISS_PATH}/{index_name}.faiss'):
